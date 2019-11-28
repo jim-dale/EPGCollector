@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{5527E0AC-14A4-47CE-AD86-DD3B10DDEA54}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DirectShow</RootNamespace>
+    <AssemblyName>DirectShow</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;ALLOW_UNTESTED_INTERFACES</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE;ALLOW_UNTESTED_INTERFACES</DefineConstants>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BDAGraph1.cs" />
+    <Compile Include="TSStreamReaderEx.cs" />
+    <Compile Include="DirectShowAPI\APIBase.cs" />
+    <Compile Include="DirectShowAPI\Interfaces.cs" />
+    <Compile Include="DirectShowAPI\StreamBufferEngine.cs" />
+    <Compile Include="DirectShowAPI\Types.cs" />
+    <Compile Include="DirectShowAPI\Utils.cs" />
+    <Compile Include="DirectShowAPI\BDA.cs" />
+    <Compile Include="DirectShowAPI\Guids.cs" />
+    <Compile Include="DisEqcHandlers\ConexantDiseqcHandler.cs" />
+    <Compile Include="Device.cs" />
+    <Compile Include="DisEqcHandlers\DigitalEverywhereDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\DiseqcHandlerBase.cs" />
+    <Compile Include="DisEqcHandlers\LegacyDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\ProfRedDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\TechnoTrendDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\TeviiDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\TwinhanDiseqcHandler.cs" />
+    <Compile Include="DVBS2Handlers\DigitalEverywhereDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\DVBS2HandlerBase.cs" />
+    <Compile Include="DVBS2Handlers\GenPixDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\HauppaugeDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\ProfRedDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\TBSDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\TechnoTrendDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\TwinhanDVBS2Handler.cs" />
+    <Compile Include="DVBS2Handlers\Win7APIDVBS2Handler.cs" />
+    <Compile Include="DVBT2Handlers\GenericDVBT2Handler.cs" />
+    <Compile Include="Enumerations.cs" />
+    <Compile Include="FilterDefinitions.cs" />
+    <Compile Include="DisEqcHandlers\GenericDiseqcHandler.cs" />
+    <Compile Include="DisEqcHandlers\HaupaugeDiseqcHandler.cs" />
+    <Compile Include="Interfaces.cs" />
+    <Compile Include="Mpeg2Section.cs" />
+    <Compile Include="DirectShowGraph.cs" />
+    <Compile Include="DirectShowAPI\Support.cs" />
+    <Compile Include="PidHandler.cs" />
+    <Compile Include="PidSpec.cs" />
+    <Compile Include="PluginDataProvider.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimulationDataProvider.cs" />
+    <Compile Include="SIPacket.cs" />
+    <Compile Include="TransportPacket.cs" />
+    <Compile Include="TSFileReader.cs" />
+    <Compile Include="TSMemoryReader.cs" />
+    <Compile Include="TSReaderBase.cs" />
+    <Compile Include="TSStreamReader.cs" />
+    <Compile Include="Utils.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj">
+      <Project>{691c6eb5-d035-43e6-b3a9-f5131bf09916}</Project>
+      <Name>DomainObjects</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

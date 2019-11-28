@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3C5CB90D-FD89-4ECA-8177-E04DB8464158}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EPGCollector</RootNamespace>
+    <AssemblyName>EPGCollector</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <ApplicationIcon>Television.ico</ApplicationIcon>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ChannelUpdate\ChannelUpdate.csproj">
+      <Project>{57424001-DB19-4179-AD1C-53453DC36DA3}</Project>
+      <Name>ChannelUpdate</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DirectShow\DirectShow.csproj">
+      <Project>{5527e0ac-14a4-47ce-ad86-dd3b10ddea54}</Project>
+      <Name>DirectShow</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj">
+      <Project>{691c6eb5-d035-43e6-b3a9-f5131bf09916}</Project>
+      <Name>DomainObjects</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DVBServices\DVBServices.csproj">
+      <Project>{2162b6d8-871f-4b2e-8d97-0fa2c8da76d1}</Project>
+      <Name>DVBServices</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Lookups\Lookups.csproj">
+      <Project>{1ACA1BAD-FE74-4CF1-B368-5052152BD106}</Project>
+      <Name>Lookups</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MxfParser\MxfParser.csproj">
+      <Project>{52063A2C-ACC3-4C68-AB5B-D5D29C06CCA5}</Project>
+      <Name>MxfParser</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NetReceiver\NetReceiver.csproj">
+      <Project>{E48FD22E-A2A3-46FD-9C88-3B8620CCD5D2}</Project>
+      <Name>NetReceiver</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NetworkProtocols\NetworkProtocols.csproj">
+      <Project>{258FC2B2-82ED-4DD0-83C2-A1806D90AC23}</Project>
+      <Name>NetworkProtocols</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SatIp\SatIp.csproj">
+      <Project>{C53C3ABC-4054-4A89-BABE-5C641F4DED6C}</Project>
+      <Name>SatIp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\VBox\VBox.csproj">
+      <Project>{4C4A02FD-1297-4D4B-85A3-293DBE428A9A}</Project>
+      <Name>VBox</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\XmlParser\XmltvParser.csproj">
+      <Project>{89AB1DA3-F6BD-4FEA-86DD-CB884B06A0B4}</Project>
+      <Name>XmltvParser</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Television.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
