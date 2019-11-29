@@ -21,7 +21,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Threading;
 using System.IO;
 
 namespace DomainObjects
@@ -29,53 +28,32 @@ namespace DomainObjects
     /// <summary>
     /// The class that describes the WMC utility function.
     /// </summary>
-    public sealed class WMCUtility
+    public static class WMCUtility
     {
-        private static Process process;
-        private static bool exited;
+        private const string AppName = "WMCUtility.exe";
 
         /// <summary>
-        /// Run the utility functions.
+        /// Run the utility functions
         /// </summary>
-        /// <param name="description">The description of the function.</param>
-        /// <param name="arguments">The parameters to the function.</param>
+        /// <param name="description">The description of the function</param>
+        /// <param name="arguments">The parameters to the function</param>
         /// <returns></returns>
         public static string Run(string description, string arguments)
         {
             Logger.Instance.Write("Running Windows Media Centre Utility to " + description);
 
-            process = new Process();
 
             if (Environment.OSVersion.Version.Major < 6)
                 return ("Windows Media Centre Utility cannot run on this version of Windows (" + Environment.OSVersion + ")");
-            
-            /*switch (Environment.OSVersion.Version.Minor)
-            {
-                case 0:
-                    process.StartInfo.FileName = "WMCUtilityVista.exe";
-                    break;
-                case 1:
-                    process.StartInfo.FileName = "WMCUtility.exe";
-                    break;
-                case 2:
-                    process.StartInfo.FileName = "WMCUtilityWin8.exe";
-                    break;
-                case 3:
-                    process.StartInfo.FileName = "WMCUtilityWin81.exe";
-                    break;
-                default:
-                    process.StartInfo.FileName = "WMCUtilityWin81.exe";
-                    break;
-            }*/
 
             FileVersionInfo fileVersionInfo;
 
             try
             {
-                fileVersionInfo =  FileVersionInfo.GetVersionInfo(Path.Combine(Environment.GetEnvironmentVariable("windir"), Path.Combine("ehome", "mcepg.dll")));
+                fileVersionInfo = FileVersionInfo.GetVersionInfo(Path.Combine(Environment.GetEnvironmentVariable("windir"), Path.Combine("ehome", "mcepg.dll")));
                 if (fileVersionInfo == null)
                     return ("Windows Media Centre Utility cannot run because the file mcepg.dll has no file version number");
-                
+
                 Logger.Instance.Write("The file version number for mcepg.dll is " + fileVersionInfo.FileVersion);
             }
             catch (FileNotFoundException)
@@ -83,87 +61,57 @@ namespace DomainObjects
                 return ("Windows Media Centre Utility cannot run - can't find Windows Media Centre file mcepg.dll");
             }
 
-            /*switch (fileVersionInfo.FileMinorPart)
+            using (var process = new Process())
             {
-                case 1:
-                    if (fileVersionInfo.FileBuildPart < 7000)
-                        process.StartInfo.FileName = "WMCUtilityVista.exe";
+                process.StartInfo.FileName = AppName;
+                process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.EnableRaisingEvents = true;
+                if (arguments != null)
+                {
+                    process.StartInfo.Arguments = arguments;
+                }
+                process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
+                {
+                    if (e.Data != null)
+                    {
+                        Logger.Instance.Write(e.Data);
+                    }
+                });
+                process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
+                {
+                    if (e.Data != null)
+                    {
+                        Logger.Instance.Write(e.Data);
+                    }
+                });
+
+                try
+                {
+                    process.Start();
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    process.WaitForExit();
+
+                    Logger.Instance.Write("Windows Media Centre Utility has completed: exit code " + process.ExitCode);
+                    if (process.ExitCode == 0)
+                        return null;
                     else
-                        process.StartInfo.FileName = "WMCUtility.exe";
-                    break;
-                case 2:
-                    process.StartInfo.FileName = "WMCUtilityWin8.exe";
-                    break;
-                case 3:
-                    process.StartInfo.FileName = "WMCUtilityWin81.exe";
-                    break;
-                default:
-                    process.StartInfo.FileName = "WMCUtilityWin81.exe";
-                    break;
-            }*/
+                        return "Windows Media Centre failed: reply code " + process.ExitCode;
+                }
+                catch (Exception e)
+                {
+                    Logger.Instance.Write("<e> Failed to run the Windows Media Centre Utility");
+                    Logger.Instance.Write("<e> " + e.Message);
 
-            process.StartInfo.FileName = "WMCUtility.exe";
-            /*Logger.Instance.Write("Windows Media Centre Utility run from " + process.StartInfo.FileName);*/
-
-            process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
-
-            if (arguments != null)
-                process.StartInfo.Arguments = arguments;
-
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.EnableRaisingEvents = true;
-            process.Exited += new EventHandler(processExited);
-            process.OutputDataReceived += new DataReceivedEventHandler(processOutputDataReceived);
-            process.ErrorDataReceived += new DataReceivedEventHandler(processErrorDataReceived);
-
-            exited = false;
-
-            try
-            {
-                process.Start();
-
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                while (!exited)
-                    Thread.Sleep(500);
-
-                Logger.Instance.Write("Windows Media Centre Utility has completed: exit code " + process.ExitCode);
-                if (process.ExitCode == 0)
-                    return (null);
-                else
-                    return ("Windows Media Centre failed: reply code " + process.ExitCode);
+                    return "Failed to run Windows Media Centre Utility due to an exception";
+                }
             }
-            catch (Exception e)
-            {
-                Logger.Instance.Write("<e> Failed to run the Windows Media Centre Utility");
-                Logger.Instance.Write("<e> " + e.Message);
-                return ("Failed to run Windows Media Centre Utility due to an exception");
-            }
-        }
-
-        private static void processOutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data == null)
-                return;
-
-            Logger.Instance.Write(e.Data);
-        }
-
-        private static void processErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data == null)
-                return;
-
-            Logger.Instance.Write(e.Data);
-        }
-
-        private static void processExited(object sender, EventArgs e)
-        {
-            exited = true;
         }
     }
 }

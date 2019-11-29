@@ -1,12 +1,9 @@
-﻿using System;
-using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
+﻿using Microsoft.Extensions.Logging;
 
 namespace WMCUtility
 {
     internal class DisableGuideLoaderCommand : ICommand
     {
-        private const string BaseKeyName = @"Software\Microsoft\Windows\CurrentVersion\Media Center\Service\";
         private readonly ILogger<DisableGuideLoaderCommand> _logger;
 
         public DisableGuideLoaderCommand(ILogger<DisableGuideLoaderCommand> logger)
@@ -18,11 +15,12 @@ namespace WMCUtility
         {
             _logger.LogInformation("Disabling in-band guide loader");
 
-            bool reply = SetDWord(BaseKeyName, "BackgroundScanner", "PeriodicScanEnabled", 0);
-            if (reply)
-                reply = SetDWord(BaseKeyName, "GLID", "DisableInbandSchedule", 1);
-
-            if (reply)
+            var success = RegistryHelpers.TrySetDWord(_logger, RegistryHelpers.MCEServicePath + "BackgroundScanner", "PeriodicScanEnabled", 0);
+            if (success)
+            {
+                success = RegistryHelpers.TrySetDWord(_logger, RegistryHelpers.MCEServicePath + "GLID", "DisableInbandSchedule", 1);
+            }
+            if (success)
             {
                 _logger.LogInformation("In-band guide loader disabled - the computer must be restarted for any new settings to take effect");
             }
@@ -32,60 +30,6 @@ namespace WMCUtility
             }
 
             return 0;
-        }
-
-        private bool SetDWord(string baseKey, string subKey, string name, int value)
-        {
-            bool result = false;
-
-            var keyName = baseKey + subKey;
-
-            RegistryKey key = default;
-            try
-            {
-                _logger.LogInformation("Opening registry key " + keyName);
-
-                key = Registry.LocalMachine.OpenSubKey(keyName, RegistryKeyPermissionCheck.ReadWriteSubTree);
-                if (key is null)
-                {
-                    _logger.LogInformation("Creating registry key " + keyName);
-                    key = Registry.LocalMachine.CreateSubKey(keyName, RegistryKeyPermissionCheck.ReadWriteSubTree);
-                }
-                if (key != null)
-                {
-                    object namedData = key.GetValue(name);
-                    if (namedData is null)
-                    {
-                        _logger.LogInformation("Creating " + name + " with value " + value);
-                        //key.SetValue(name, value);
-                    }
-                    else
-                    {
-                        if ((int)namedData != value)
-                        {
-                            _logger.LogInformation("Setting " + name + " to value " + value);
-                            //key.SetValue(name, value);
-
-                        }
-                        else
-                            _logger.LogInformation(name + " not changed - value already " + value);
-                    }
-                }
-
-                key.Close();
-
-                result = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "<E> An exception of type {ExceptionType} has been thrown", ex.GetType());
-            }
-            finally
-            {
-                key?.Dispose();
-            }
-
-            return result;
         }
     }
 }

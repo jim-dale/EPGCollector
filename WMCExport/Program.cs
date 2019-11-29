@@ -37,14 +37,15 @@ namespace WMCUtility
 
             using (var serviceProvider = serviceCollection.BuildServiceProvider())
             {
-                var logger = serviceProvider.GetService<ILogger<Program>>();
+                var commandLine = Environment.CommandLine;
 
+                var logger = serviceProvider.GetService<ILogger<Program>>();
                 logger.LogInformation("Windows Media Center Utility build: {Version}", AssemblyVersion);
+                logger.LogInformation("Windows Media Center Utility command line: {CommandLine}", commandLine);
 
                 Type commandType = ParseCommandLine(args);
                 if (commandType == default)
                 {
-                    var commandLine = Environment.CommandLine;
                     logger.LogError("Windows Media Center Utility started with incorrect command line: {CommandLine}", commandLine);
                 }
                 else
@@ -98,6 +99,7 @@ namespace WMCUtility
         {
             services.AddLogging(configure => configure.AddConsole())
                 .AddTransient<ExportCommand>()
+                .AddTransient<EnableGuideLoaderCommand>()
                 .AddTransient<DisableGuideLoaderCommand>();
         }
     }
