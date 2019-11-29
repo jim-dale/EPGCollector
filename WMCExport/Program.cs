@@ -46,7 +46,7 @@ namespace WMCUtility
                 Type commandType = ParseCommandLine(args);
                 if (commandType == default)
                 {
-                    logger.LogError("Windows Media Center Utility started with incorrect command line: {CommandLine}", commandLine);
+                    logger.LogError("Windows Media Center Utility started with invalid command line: {CommandLine}", commandLine);
                 }
                 else
                 {
@@ -70,7 +70,7 @@ namespace WMCUtility
                 switch (commandName)
                 {
                     case "EXPORTDATA":
-                        commandType = typeof(ExportCommand);
+                        commandType = typeof(ExportMcedbCommand);
                         break;
                     case "DISABLEGUIDELOADER":
                         commandType = typeof(DisableGuideLoaderCommand);
@@ -98,7 +98,7 @@ namespace WMCUtility
         private static void ConfigureServices(ServiceCollection services)
         {
             services.AddLogging(configure => configure.AddConsole())
-                .AddTransient<ExportCommand>()
+                .AddTransient<ExportMcedbCommand>()
                 .AddTransient<EnableGuideLoaderCommand>()
                 .AddTransient<DisableGuideLoaderCommand>();
         }
