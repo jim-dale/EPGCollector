@@ -56,9 +56,10 @@ namespace EPGCentre
             cboProvider.Items.Add(" -- New --");
 
             foreach (CableProvider provider in CableProvider.Providers)
+            {
                 cboProvider.Items.Add(provider);
-
-            if (cboProvider.Items.Count != 0)
+            }
+            if (cboProvider.Items.Count > 1)
                 cboProvider.SelectedIndex = 1;
             else
                 cboProvider.SelectedIndex = 0;

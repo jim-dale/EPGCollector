@@ -47,9 +47,10 @@ namespace EPGCentre
             cboProvider.Items.Insert(0, " -- New --");
 
             foreach (ISDBTerrestrialProvider provider in ISDBTerrestrialProvider.Providers)
+            {
                 cboProvider.Items.Add(provider);
-            
-            if (cboProvider.Items.Count != 0)
+            }
+            if (cboProvider.Items.Count > 1)
                 cboProvider.SelectedIndex = 1;
             else
                 cboProvider.SelectedIndex = 0;

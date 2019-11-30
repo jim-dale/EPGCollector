@@ -31,15 +31,15 @@ namespace EPGCentre
         /// <summary>
         /// Get the selected provide.
         /// </summary>
-        public ClearQamProvider Provider 
-        { 
-            get 
+        public ClearQamProvider Provider
+        {
+            get
             {
                 if (cboProvider.SelectedIndex == 0)
                     return (null);
                 else
-                    return (cboProvider.SelectedItem as ClearQamProvider); 
-            } 
+                    return (cboProvider.SelectedItem as ClearQamProvider);
+            }
         }
 
         /// <summary>
@@ -56,9 +56,10 @@ namespace EPGCentre
             cboProvider.Items.Add(" -- New --");
 
             foreach (ClearQamProvider provider in ClearQamProvider.Providers)
+            {
                 cboProvider.Items.Add(provider);
-
-            if (cboProvider.Items.Count != 0)
+            }
+            if (cboProvider.Items.Count > 1)
                 cboProvider.SelectedIndex = 1;
             else
                 cboProvider.SelectedIndex = 0;
@@ -67,7 +68,7 @@ namespace EPGCentre
         private void cboProvider_SelectedIndexChanged(object sender, EventArgs e)
         {
             lbFrequency.Items.Clear();
-            
+
             lbFrequency.Items.Add(" -- New --");
             lbFrequency.SelectedIndex = 0;
 

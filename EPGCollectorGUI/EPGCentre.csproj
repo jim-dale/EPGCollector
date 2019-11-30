@@ -478,10 +478,6 @@
       <DependentUpon>ViewSatIPControl.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
-    <None Include="Properties\DataSources\DomainObjects.XmltvChannelChange.datasource" />
-    <None Include="Properties\DataSources\DVBServices.BellTVProgramCategory.datasource" />
-    <None Include="Properties\DataSources\DVBServices.DishNetworkProgramCategory.datasource" />
-    <None Include="Properties\DataSources\Lookups.TVDBProgramCategory.datasource" />
     <Compile Include="RunCollectionControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -610,13 +606,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Properties\DataSources\DomainObjects.TVStation.datasource" />
-    <None Include="Properties\DataSources\DVBServices.AtscPsipProgramCategory.datasource" />
-    <None Include="Properties\DataSources\DVBServices.CustomProgramCategory.datasource" />
-    <None Include="Properties\DataSources\DVBServices.EITProgramContent.datasource" />
-    <None Include="Properties\DataSources\DVBServices.MediaHighwayProgramCategory.datasource" />
-    <None Include="Properties\DataSources\DVBServices.OpenTVProgramCategory.datasource" />
-    <None Include="Properties\DataSources\INIFile.datasource" />
     <None Include="Resources\QuestionMark.jpg" />
   </ItemGroup>
   <ItemGroup>

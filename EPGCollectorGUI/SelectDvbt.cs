@@ -31,29 +31,29 @@ namespace EPGCentre
         /// <summary>
         /// Get the selected country.
         /// </summary>
-        public string Country 
-        { 
-            get 
+        public string Country
+        {
+            get
             {
                 if (cboCountry.SelectedIndex == 0)
                     return (null);
                 else
-                    return (cboCountry.Text); 
-            } 
+                    return (cboCountry.Text);
+            }
         }
 
         /// <summary>
         /// Get the selected area.
         /// </summary>
-        public string Area 
-        { 
-            get 
+        public string Area
+        {
+            get
             {
                 if (cboArea.SelectedIndex == 0)
                     return (null);
                 else
-                    return (cboArea.Text); 
-            } 
+                    return (cboArea.Text);
+            }
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace EPGCentre
             {
                 bool add = true;
 
-                foreach(Country country in cboCountry.Items)
+                foreach (Country country in cboCountry.Items)
                 {
                     if (country.Name == provider.Country.Name)
                         add = false;
@@ -83,7 +83,7 @@ namespace EPGCentre
 
             cboCountry.Items.Insert(0, " -- New --");
 
-            if (cboCountry.Items.Count != 0)
+            if (cboCountry.Items.Count > 1)
                 cboCountry.SelectedIndex = 1;
             else
                 cboCountry.SelectedIndex = 0;
@@ -92,7 +92,7 @@ namespace EPGCentre
         private void cboCountry_SelectedIndexChanged(object sender, EventArgs e)
         {
             cboArea.Items.Clear();
-            
+
             cboArea.Items.Add(" -- New --");
             cboArea.SelectedIndex = 0;
 

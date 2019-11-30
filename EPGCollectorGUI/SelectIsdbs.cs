@@ -47,9 +47,10 @@ namespace EPGCentre
             cboSatellite.Items.Add(" -- New --");
 
             foreach (ISDBSatelliteProvider satellite in ISDBSatelliteProvider.Providers)
+            {
                 cboSatellite.Items.Add(satellite);
-
-            if (cboSatellite.Items.Count != 0)
+            }
+            if (cboSatellite.Items.Count > 1)
                 cboSatellite.SelectedIndex = 1;
             else
                 cboSatellite.SelectedIndex = 0;
@@ -58,7 +59,7 @@ namespace EPGCentre
         private void cboSatellite_SelectedIndexChanged(object sender, EventArgs e)
         {
             lbFrequency.Items.Clear();
-            
+
             lbFrequency.Items.Add(" -- New --");
             lbFrequency.SelectedIndex = 0;
 

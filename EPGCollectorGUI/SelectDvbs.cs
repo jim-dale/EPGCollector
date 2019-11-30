@@ -47,9 +47,11 @@ namespace EPGCentre
             cboSatellite.Items.Add(" -- New --");
 
             foreach (Satellite satellite in Satellite.Providers)
+            {
                 cboSatellite.Items.Add(satellite);
+            }
 
-            if (cboSatellite.Items.Count != 0)
+            if (cboSatellite.Items.Count > 1)
                 cboSatellite.SelectedIndex = 1;
             else
                 cboSatellite.SelectedIndex = 0;
