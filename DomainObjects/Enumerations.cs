@@ -389,93 +389,65 @@ namespace DomainObjects
     }
 
     /// <summary>
-    /// The state of a data update control.
+    /// The state of a data update control
     /// </summary>
     public enum DataState
     {
-        /// <summary>
-        /// There are unresolved errors.
-        /// </summary>
+        /// <summary>There are unresolved errors</summary>
         HasErrors,
-        /// <summary>
-        /// The data does not need saving.
-        /// </summary>
+        /// <summary>The data does not need saving</summary>
         NotChanged,
-        /// <summary>
-        /// The data needs saving.
-        /// </summary>
+        /// <summary>The data needs saving</summary>
         Changed
     }
 
     /// <summary>
-    /// The function of the parameters.
+    /// The function of the parameters
     /// </summary>
     public enum ParameterSet
     {
-        /// <summary>
-        /// The parameters are used by the Collector.
-        /// </summary>
+        /// <summary>The parameters are used by the Collector</summary>
         Collector,
-        /// <summary>
-        /// The parameters are used by the DVBLogic plugin.
-        /// </summary>
+        /// <summary>The parameters are used by the DVBLogic plugin</summary>
         Plugin
     }
 
     /// <summary>
-    /// The type of run.
+    /// The type of run
     /// </summary>
     public enum RunType
     {
-        /// <summary>
-        /// The parameters are being loaded to run a collection.
-        /// </summary>
+        /// <summary>The parameters are being loaded to run a collection</summary>
         Collection,
-        /// <summary>
-        /// The parameters are being loaded into EPG Centre.
-        /// </summary>
+        /// <summary>The parameters are being loaded into EPG Centre</summary>
         Centre
     }
 
     /// <summary>
-    /// The matching method for lookups.
+    /// The matching method for lookups
     /// </summary>
     public enum MatchMethod
     {
-        /// <summary>
-        /// The title must match exactly.
-        /// </summary>
+        /// <summary>The title must match exactly</summary>
         Exact,
-        /// <summary>
-        /// The title must contain the string.
-        /// </summary>
+        /// <summary>The title must contain the string</summary>
         Contains,
-        /// <summary>
-        /// The title must be the nearest match to the string.
-        /// </summary>
+        /// <summary>The title must be the nearest match to the string</summary>
         Nearest
     }
 
     /// <summary>
-    /// The merge method for channel update.
+    /// The merge method for channel update
     /// </summary>
     public enum ChannelMergeMethod
     {
-        /// <summary>
-        /// No matching.
-        /// </summary>
+        /// <summary>No matching</summary>
         None,
-        /// <summary>
-        /// Match on station name.
-        /// </summary>
+        /// <summary>Match on station name</summary>
         Name,
-        /// <summary>
-        /// Match on channel number.
-        /// </summary>
+        /// <summary>Match on channel number</summary>
         Number,
-        /// <summary>
-        /// Match on channel name and number.
-        /// </summary>
+        /// <summary>Match on channel name and number</summary>
         NameNumber
     }
 
@@ -484,25 +456,15 @@ namespace DomainObjects
     /// </summary>
     public enum ChannelEPGScanner
     {
-        /// <summary>
-        /// No scanning.
-        /// </summary>
+        /// <summary>No scanning</summary>
         None,
-        /// <summary>
-        /// Default scanning.
-        /// </summary>
+        /// <summary>Default scanning</summary>
         Default,
-        /// <summary>
-        /// Scan using EPG Collector.
-        /// </summary>
+        /// <summary>Scan using EPG Collector</summary>
         EPGCollector,
-        /// <summary>
-        /// Scan using EIT scanner.
-        /// </summary>
+        /// <summary>Scan using EIT scanner</summary>
         EITScanner,
-        /// <summary>
-        /// XMLTV epg.
-        /// </summary> 
+        /// <summary>XMLTV epg</summary> 
         Xmltv
     }
 
@@ -511,78 +473,44 @@ namespace DomainObjects
     /// </summary>
     public enum ExitCode
     {
-        /// <summary>
-        /// The run finished normally.
-        /// </summary>
+        /// <summary>The run finished normally</summary>
         OK,
-        /// <summary>
-        /// There are no suitable tuners installed.
-        /// </summary>
-        NoDVBTuners,
-        /// <summary>
-        /// The ini file cannot be opened.
-        /// </summary>
+        /// <summary>There are no suitable tuners installed</summary>
+        NoTuners,
+        /// <summary>The ini file cannot be opened</summary>
         ParameterFileNotFound,
-        /// <summary>
-        /// There is an error in the ini file.
-        /// </summary>
+        /// <summary>There is an error in the ini file</summary>
         ParameterError,
-        /// <summary>
-        /// The command line is incorrect.
-        /// </summary>
+        /// <summary>The command line is incorrect</summary>
         CommandLineWrong,
-        /// <summary>
-        /// A software exception has occurred.
-        /// </summary>
+        /// <summary>A software exception has occurred</summary>
         SoftwareException,
-        /// <summary>
-        /// Not all EPG data has been collected.
-        /// </summary>
+        /// <summary>Not all EPG data has been collected</summary>
         EPGDataIncomplete,
-        /// <summary>
-        /// The user abandoned the run.
-        /// </summary>
+        /// <summary>The user abandoned the run</summary>
         AbandonedByUser,
-        /// <summary>
-        /// The ini file does not match the hardware configuration.
-        /// </summary>
+        /// <summary>The ini file does not match the hardware configuration</summary>
         ParameterTunerMismatch,
-        /// <summary>
-        /// The log file cannot be written.
-        /// </summary>
+        /// <summary>The log file cannot be written</summary>
         LogFileNotAvailable,
-        /// <summary>
-        /// Some frequencies could not be processed.
-        /// </summary>
+        /// <summary>Some frequencies could not be processed</summary>
         SomeFrequenciesNotProcessed,
-        /// <summary>
-        /// The output file could not be created.
-        /// </summary>
+        /// <summary>The output file could not be created</summary>
         OutputFileNotCreated,
-        /// <summary>
-        /// The simulation file could not be located or failed to load.
-        /// </summary>
+        /// <summary>The simulation file could not be located or failed to load</summary>
         SimulationFileError,
-        /// <summary>
-        /// No data was collected.
-        /// </summary>
+        /// <summary>No data was collected</summary>
         NoDataCollected,
-        /// <summary>
-        /// The tuner filter could not be loaded.
-        /// </summary>
+        /// <summary>The tuner filter could not be loaded</summary>
         NoBDATunerFilter,
-        /// <summary>
-        /// The hardware filter chain could not be created.
-        /// </summary>
+        /// <summary>The hardware filter chain could not be created</summary>
         HardwareFilterChainNotBuilt,
-        /// <summary>
-        /// The DVBLogic plugin could not start.
-        /// </summary>
+        /// <summary>The DVBLogic plugin could not start</summary>
         PluginNotStarted
     }
 
     /// <summary>
-    /// The precedence of data for an import files.
+    /// The precedence of data for an import files
     /// </summary>
     public enum DataPrecedence
     {

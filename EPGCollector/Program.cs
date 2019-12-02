@@ -20,43 +20,39 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Threading;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
-using System.Collections.ObjectModel;
-
+using System.Threading;
+using ChannelUpdate;
 using DirectShow;
 using DomainObjects;
 using DVBServices;
 using Lookups;
-using ChannelUpdate;
-using XmltvParser;
 using MxfParser;
 using NetReceiver;
-using SatIp;
-using SatIpDomainObjects;
 using NetworkProtocols;
+using SatIp;
 using VBox;
+using XmltvParser;
 
 namespace EPGCollector
 {
     class Program
     {
-        /// <summary>
-        /// Get the full assembly version number.
-        /// </summary>
+        /// <summary>Get the full assembly version number</summary>
         public static string AssemblyVersion
         {
             get
             {
-                System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return (version.Major + "." + version.Minor + "." + version.Build + "." + version.Revision);
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version.ToString();
             }
         }
 
         private static ITunerDataProvider graph;
-        
+
         private static TimerCallback timerDelegate;
         private static System.Threading.Timer timer;
 
@@ -68,7 +64,7 @@ namespace EPGCollector
 
         private static bool cancelGraph;
         private static bool ignoreProcessComplete;
-        
+
         private static int collectionsWorked;
         private static int tuneFailed;
         private static int timeOuts;
@@ -79,8 +75,9 @@ namespace EPGCollector
 
         private static bool pluginAbandon = false;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+            ExitCode exitCode = ExitCode.OK;
             RunParameters.BaseDirectory = Directory.GetCurrentDirectory();
 
             try
@@ -91,12 +88,10 @@ namespace EPGCollector
             {
                 Console.WriteLine("Cannot write log file");
                 Console.WriteLine(e.Message);
-                System.Environment.Exit((int)ExitCode.LogFileNotAvailable);                
+                return (int)ExitCode.LogFileNotAvailable;
             }
 
-            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(unhandledException);
-            if (RunParameters.IsWindows)
-                Thread.CurrentThread.Name = "Main Thread";
+            //AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnhandledException);
 
             startTime = DateTime.Now;
             HistoryRecord.Current = new HistoryRecord(startTime);
@@ -118,7 +113,7 @@ namespace EPGCollector
             Logger.Instance.Write("VBox build: " + VBoxController.AssemblyVersion);
             Logger.Instance.Write("");
             Logger.Instance.Write("TMDB library build: " + LookupController.TmdbAssemblyVersion);
-            Logger.Instance.Write("TVDB library build: " + LookupController.TvdbAssemblyVersion);            
+            Logger.Instance.Write("TVDB library build: " + LookupController.TvdbAssemblyVersion);
             Logger.Instance.Write("");
             Logger.Instance.Write("Privilege level: " + RunParameters.Role);
             Logger.Instance.Write("");
@@ -131,7 +126,7 @@ namespace EPGCollector
             {
                 Logger.Instance.Write("<e> Incorrect command line");
                 Logger.Instance.Write("<e> Exiting with code = 4");
-                System.Environment.Exit((int)ExitCode.CommandLineWrong);                
+                return (int)ExitCode.CommandLineWrong;
             }
 
             if (RunParameters.IsMono)
@@ -147,29 +142,31 @@ namespace EPGCollector
             }
 
             if (!CommandLine.PluginMode)
-                runNormalCollection();
+                exitCode = RunNormalCollection();
             else
-                runPluginCollection();
+                exitCode = RunPluginCollection();
+
+            return (int)exitCode;
         }
 
-        private static void runNormalCollection()
+        private static ExitCode RunNormalCollection()
         {
             if (CommandLine.TunerQueryOnly)
             {
                 BDAGraph.LoadTuners();
                 SatIpServer.LoadServers();
                 VBoxTuner.LoadServers();
-                if (!Tuner.TunerPresent)
+                if (Tuner.TunerPresent == false)
                 {
                     Logger.Instance.Write("<e> No tuners detected");
-                    Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.NoDVBTuners);
-                    System.Environment.Exit((int)ExitCode.NoDVBTuners);
+                    Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.NoTuners);
+                    return ExitCode.NoTuners;
                 }
                 else
                 {
                     Logger.Instance.Write("Tuner query only");
                     Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.OK);
-                    System.Environment.Exit((int)ExitCode.OK);
+                    return ExitCode.OK;
                 }
             }
 
@@ -181,13 +178,13 @@ namespace EPGCollector
 
                 Logger.Instance.Write("<e> Configuration incorrect");
                 Logger.Instance.Write("<e> Exiting with code = " + (int)exitCode);
-                System.Environment.Exit((int)exitCode);
+                return exitCode;
             }
 
-            processTunerCollection();
+            return ProcessTunerCollection();
         }
 
-        private static void processTunerCollection()
+        private static ExitCode ProcessTunerCollection()
         {
             bool reply;
 
@@ -201,34 +198,33 @@ namespace EPGCollector
                 if (VBoxConfiguration.VBoxEnabled)
                     VBoxTuner.LoadServers();
 
-                if (!Tuner.TunerPresent)
+                if (Tuner.TunerPresent == false)
                 {
-                    HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.NoDVBTuners);
+                    HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.NoTuners);
                     Logger.Write(HistoryRecord.Current);
 
                     Logger.Instance.Write("<e> No tuners detected");
-                    Logger.Instance.Write("<e> Exiting with code = " + ExitCode.NoDVBTuners);
-                    System.Environment.Exit((int)ExitCode.NoDVBTuners);
+                    Logger.Instance.Write("<e> Exiting with code = " + ExitCode.NoTuners);
+                    return ExitCode.NoTuners;
                 }
 
-                reply = checkConfiguration();
-                if (!reply)
+                if (IsConfigurationValid() == false)
                 {
                     HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.ParameterTunerMismatch);
                     Logger.Write(HistoryRecord.Current);
 
                     Logger.Instance.Write("<e> Configuration does not match ini parameters");
                     Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.ParameterTunerMismatch);
-                    System.Environment.Exit((int)ExitCode.ParameterTunerMismatch);
+                    return ExitCode.ParameterTunerMismatch;
                 }
             }
 
-            EPGController.ProcessComplete += new EPGController.ProcessCompleteHandler(epgControllerProcessComplete);
+            EPGController.ProcessComplete += new EPGController.ProcessCompleteHandler(EpgControllerProcessComplete);
 
             graphWorker = new BackgroundWorker();
             graphWorker.WorkerSupportsCancellation = true;
-            graphWorker.DoWork += new DoWorkEventHandler(graphWorkerDoWork);
-            graphWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(graphWorkerCompleted);
+            graphWorker.DoWork += new DoWorkEventHandler(GraphWorkerDoWork);
+            graphWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(GraphWorkerCompleted);
             graphWorker.RunWorkerAsync();
 
             if (RunParameters.IsWine)
@@ -241,8 +237,8 @@ namespace EPGCollector
                 {
                     keyboardWorker = new BackgroundWorker();
                     keyboardWorker.WorkerSupportsCancellation = true;
-                    keyboardWorker.DoWork += new DoWorkEventHandler(keyboardWorkerDoWork);
-                    keyboardWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(keyboardWorkerCompleted);
+                    keyboardWorker.DoWork += new DoWorkEventHandler(KeyboardWorkerDoWork);
+                    keyboardWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(KeyboardWorkerCompleted);
                     keyboardWorker.RunWorkerAsync();
                 }
             }
@@ -259,7 +255,7 @@ namespace EPGCollector
 
                 Logger.Instance.Write("Cancelled by user - no file created");
                 Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.AbandonedByUser);
-                System.Environment.Exit((int)ExitCode.AbandonedByUser);
+                return ExitCode.AbandonedByUser;
             }
 
             if (RunParameters.Instance.FrequencyCollection.Count == 0 || (RunParameters.Instance.FrequencyCollection.Count != 0 && collectionsWorked != 0))
@@ -268,9 +264,9 @@ namespace EPGCollector
 
                 EPGController.Instance.FinishRun();
                 if (RunParameters.Instance.AbandonRequested)
-                    return;
+                    return ExitCode.AbandonedByUser;
 
-                logDataCollected();
+                LogDataCollected();
 
                 string outputReply = OutputFile.Process();
                 if (outputReply != null)
@@ -281,7 +277,7 @@ namespace EPGCollector
                     Logger.Instance.Write("<e> The output file could not be created");
                     Logger.Instance.Write("<e> " + outputReply);
                     Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.OutputFileNotCreated);
-                    System.Environment.Exit((int)ExitCode.OutputFileNotCreated);
+                    return ExitCode.OutputFileNotCreated;
                 }
             }
 
@@ -289,7 +285,7 @@ namespace EPGCollector
             int recordCountTotal = TVStation.EPGCount(RunParameters.Instance.StationCollection);
             Logger.Instance.Write("<C> Finished - output " + recordCountOutput + " EPG entries" +
                 (recordCountTotal == recordCountOutput ? "" : " out of " + recordCountTotal));
-            HistoryRecord.Current.CollectionCount = recordCountOutput;            
+            HistoryRecord.Current.CollectionCount = recordCountOutput;
 
             if (collectionsWorked != RunParameters.Instance.FrequencyCollection.Count || timeOuts != 0)
             {
@@ -297,7 +293,7 @@ namespace EPGCollector
                 Logger.Write(HistoryRecord.Current);
 
                 Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.SomeFrequenciesNotProcessed);
-                System.Environment.Exit((int)ExitCode.SomeFrequenciesNotProcessed);
+                return ExitCode.SomeFrequenciesNotProcessed;
             }
 
             if (TVStation.EPGCount(RunParameters.Instance.StationCollection) == 0)
@@ -307,7 +303,7 @@ namespace EPGCollector
 
                 Logger.Instance.Write("<e> No data collected");
                 Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.NoDataCollected);
-                System.Environment.Exit((int)ExitCode.NoDataCollected);
+                return ExitCode.NoDataCollected;
             }
 
             if (OptionEntry.IsDefined(OptionName.StoreStationInfo))
@@ -323,33 +319,34 @@ namespace EPGCollector
             }
 
             if (RunParameters.Instance.ChannelUpdateEnabled)
-                updateChannels();
+                UpdateChannels();
 
             HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.OK);
             Logger.Write(HistoryRecord.Current);
 
             Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.OK);
-            System.Environment.Exit((int)ExitCode.OK);
+            return ExitCode.OK;
         }
 
-        private static void graphWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private static void GraphWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if (e.Error != null)
                 throw new InvalidOperationException("Graph background worker failed - see inner exception", e.Error);
         }
 
-        private static void keyboardWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private static void KeyboardWorkerCompleted(object sender, RunWorkerCompletedEventArgs ex)
         {
-            if (e.Error != null)
-                throw new InvalidOperationException("Keyboard background worker failed - see inner exception", e.Error);
+            if (ex.Error != null)
+                throw new InvalidOperationException("Keyboard background worker failed - see inner exception", ex.Error);
         }
 
-        private static void unhandledException(object sender, UnhandledExceptionEventArgs e)
+        private static void UnhandledException(object sender, UnhandledExceptionEventArgs ex)
         {
-            Exception exception = e.ExceptionObject as Exception;
-
-            if (exception != null)
+            if (ex.ExceptionObject is Exception exception)
             {
+                Logger.Instance.Write("<E> ** The program has failed with an exception of type " + exception);
+
+
                 while (exception.InnerException != null)
                     exception = exception.InnerException;
 
@@ -358,16 +355,16 @@ namespace EPGCollector
                 Logger.Instance.Write("<E> ** Location: " + exception.StackTrace);
             }
             else
-                Logger.Instance.Write("<E> An unhandled exception of type " + e.ExceptionObject + " has occurred");
+                Logger.Instance.Write("<E> An unhandled exception of type " + ex.ExceptionObject + " has occurred");
 
             HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.SoftwareException);
             Logger.Write(HistoryRecord.Current);
-            
+
             Logger.Instance.Write("<E> Exiting with code = " + (int)ExitCode.SoftwareException);
-            System.Environment.Exit((int)ExitCode.SoftwareException);
+            Environment.Exit((int)ExitCode.SoftwareException);
         }
 
-        private static void epgControllerProcessComplete(object sender, EventArgs e)
+        private static void EpgControllerProcessComplete(object sender, EventArgs e)
         {
             if (ignoreProcessComplete)
                 return;
@@ -375,7 +372,7 @@ namespace EPGCollector
             endFrequencyEvent.Set();
         }
 
-        private static void timerCallback(object stateObject)
+        private static void TimerCallback(object stateObject)
         {
             Logger.Instance.Write("");
             Logger.Instance.Write("<e> Collection timed out (" + RunParameters.Instance.FrequencyTimeout + ")");
@@ -383,7 +380,7 @@ namespace EPGCollector
             endFrequencyEvent.Set();
         }
 
-        private static void graphWorkerDoWork(object sender, DoWorkEventArgs e)
+        private static void GraphWorkerDoWork(object sender, DoWorkEventArgs e)
         {
             int frequencyIndex = 0;
 
@@ -391,7 +388,7 @@ namespace EPGCollector
             {
                 TuningFrequency frequency = RunParameters.Instance.FrequencyCollection[frequencyIndex];
                 RunParameters.Instance.CurrentFrequency = frequency;
-                
+
                 switch (frequency.TunerType)
                 {
                     case TunerType.File:
@@ -404,7 +401,7 @@ namespace EPGCollector
                         }
                         else
                         {
-                            getData(frequency, dataProvider);
+                            GetData(frequency, dataProvider);
                             dataProvider.Stop();
                         }
                         break;
@@ -419,17 +416,17 @@ namespace EPGCollector
                         }
                         else
                         {
-                            getData(frequency, streamController);
+                            GetData(frequency, streamController);
                             streamController.Stop();
                         }
                         break;
                     default:
-                        bool tuned = tuneFrequency(frequency);
+                        bool tuned = TuneFrequency(frequency);
                         if (!tuned)
                             tuneFailed++;
                         else
                         {
-                            getData(frequency, graph as ISampleDataProvider);
+                            GetData(frequency, graph as ISampleDataProvider);
 
                             if (graph != null)
                                 graph.Dispose();
@@ -443,7 +440,7 @@ namespace EPGCollector
             endProgramEvent.Set();
         }
 
-        private static bool tuneFrequency(TuningFrequency frequency)
+        private static bool TuneFrequency(TuningFrequency frequency)
         {
             Logger.Instance.Write("Tuning to frequency " + frequency.Frequency + " on " + frequency.TunerType);
 
@@ -460,7 +457,7 @@ namespace EPGCollector
                     tuningSpec = new TuningSpec((TerrestrialFrequency)frequency);
                     tunerNodeType = TunerNodeType.Terrestrial;
                     break;
-                case TunerType.Cable:                
+                case TunerType.Cable:
                     tuningSpec = new TuningSpec((CableFrequency)frequency);
                     tunerNodeType = TunerNodeType.Cable;
                     break;
@@ -490,15 +487,15 @@ namespace EPGCollector
 
             Tuner currentTuner = null;
 
-            while (!finished)
+            while (finished == false)
             {
                 graph = BDAGraph.FindTuner(frequency.SelectedTuners, tunerNodeType, tuningSpec, currentTuner);
                 if (graph == null)
                 {
-                    graph = SatIpController.FindReceiver(frequency.SelectedTuners, tunerNodeType, tuningSpec, currentTuner, getDiseqcSetting(tuningSpec.Frequency));
+                    graph = SatIpController.FindReceiver(frequency.SelectedTuners, tunerNodeType, tuningSpec, currentTuner, GetDiseqcSetting(tuningSpec.Frequency));
                     if (graph == null)
                     {
-                        graph = VBoxController.FindReceiver(frequency.SelectedTuners, tunerNodeType, tuningSpec, currentTuner, getDiseqcSetting(tuningSpec.Frequency), false);
+                        graph = VBoxController.FindReceiver(frequency.SelectedTuners, tunerNodeType, tuningSpec, currentTuner, GetDiseqcSetting(tuningSpec.Frequency), false);
                         if (graph == null)
                         {
                             Logger.Instance.Write("<e> No tuner able to tune frequency " + frequency.ToString());
@@ -547,14 +544,14 @@ namespace EPGCollector
                         done = true;
                 }
 
-                if (!locked)
+                if (locked == false)
                 {
                     Logger.Instance.Write("<e> Failed to acquire signal");
                     graph.Dispose();
 
                     if (frequencyRetries == 2)
                     {
-                        currentTuner = graph.Tuner; 
+                        currentTuner = graph.Tuner;
                         frequencyRetries = 0;
                     }
                     else
@@ -570,17 +567,17 @@ namespace EPGCollector
                 }
             }
 
-            return (true);
+            return true;
         }
 
-        private static int getDiseqcSetting(TuningFrequency frequency)
+        private static int GetDiseqcSetting(TuningFrequency item)
         {
-            SatelliteFrequency satelliteFrequency = frequency as SatelliteFrequency;
+            SatelliteFrequency satelliteFrequency = item as SatelliteFrequency;
             if (satelliteFrequency == null)
-                return(0);
+                return 0;
 
             if (satelliteFrequency.DiseqcRunParamters.DiseqcSwitch == null)
-                return(0);
+                return 0;
 
             switch (satelliteFrequency.DiseqcRunParamters.DiseqcSwitch)
             {
@@ -601,9 +598,9 @@ namespace EPGCollector
             }
         }
 
-        private static bool getData(TuningFrequency frequency, ISampleDataProvider dataProvider)
+        private static bool GetData(TuningFrequency frequency, ISampleDataProvider dataProvider)
         {
-            timerDelegate = new TimerCallback(timerCallback);
+            timerDelegate = new TimerCallback(TimerCallback);
             timer = new System.Threading.Timer(timerDelegate, null, RunParameters.Instance.FrequencyTimeout, RunParameters.Instance.FrequencyTimeout);
 
             ignoreProcessComplete = false;
@@ -618,16 +615,16 @@ namespace EPGCollector
 
             collectionsWorked++;
 
-            return (true);
+            return true;
         }
 
-        private static void keyboardWorkerDoWork(object sender, DoWorkEventArgs e)
+        private static void KeyboardWorkerDoWork(object sender, DoWorkEventArgs e)
         {
-            bool abandon = false;            
+            bool abandon = false;
 
             do
             {
-                if (!CommandLine.BackgroundMode)
+                if (CommandLine.BackgroundMode == false)
                 {
                     ConsoleKeyInfo abandonKey = Console.ReadKey();
                     abandon = (abandonKey.Key == ConsoleKey.Q);
@@ -635,7 +632,7 @@ namespace EPGCollector
                 else
                 {
                     Mutex cancelMutex = new Mutex(false, "EPG Collector Cancel Mutex " + CommandLine.RunReference);
-                    cancelMutex.WaitOne();                    
+                    cancelMutex.WaitOne();
                     cancelMutex.Close();
                     abandon = true;
                 }
@@ -650,25 +647,26 @@ namespace EPGCollector
             endFrequencyEvent.Set();
         }
 
-        private static bool checkConfiguration()
+        private static bool IsConfigurationValid()
         {
+            bool result = true;
+
             foreach (TuningFrequency tuningFrequency in RunParameters.Instance.FrequencyCollection)
             {
                 foreach (SelectedTuner tuner in tuningFrequency.SelectedTuners)
                 {
                     if (tuner.TunerNumber > Tuner.TunerCollection.Count)
                     {
-                        Logger.Instance.Write("<e> INI file format error: A Tuner number is out of range.");
-                        Logger.Instance.Write("<e> Exiting with code = " + (int)ExitCode.ParameterError);
-                        System.Environment.Exit((int)ExitCode.ParameterError);
+                        result = false;
+                        break;
                     }
                 }
             }
 
-            return (true);
+            return result;
         }
 
-        private static void logDataCollected()
+        private static void LogDataCollected()
         {
             int expectedNoData = 0;
             bool first = true;
@@ -685,7 +683,7 @@ namespace EPGCollector
                         first = false;
                     }
 
-                    bool dataOK = logStationCollected(tvStation);
+                    bool dataOK = LogStationCollected(tvStation);
                     if (!dataOK)
                         expectedNoData++;
                 }
@@ -701,18 +699,18 @@ namespace EPGCollector
             {
                 if (tvStation.Included && tvStation.EPGCollection.Count != 0)
                 {
-                    logStationCollected(tvStation);
+                    LogStationCollected(tvStation);
                     stations++;
                 }
             }
 
-            Logger.Instance.Write("<S> Summary: Total Stations = " + stations +
-                " Total Gaps = " + totalGaps +
-                " Total Overlaps = " + totalOverlaps +
-                " Total Time = " + (DateTime.Now - startTime));
+            Logger.Instance.Write("<S> Summary: Total Stations = " + stations
+                + " Total Gaps = " + totalGaps
+                + " Total Overlaps = " + totalOverlaps
+                + " Total Time = " + (DateTime.Now - startTime));
         }
 
-        private static bool logStationCollected(TVStation tvStation)
+        private static bool LogStationCollected(TVStation tvStation)
         {
             int records = 0;
             int gaps = 0;
@@ -801,7 +799,7 @@ namespace EPGCollector
                         tvStation.EPGLink.TransportStreamID + "," +
                         tvStation.EPGLink.ServiceID + " Time offset " + tvStation.EPGLink.TimeOffset;
 
-                Logger.Instance.Write("Station: " + tvStation.FixedLengthName + " (" + tvStation.FullID + " EPG: " + epg + epgLink + ") " + dataMissing);                
+                Logger.Instance.Write("Station: " + tvStation.FixedLengthName + " (" + tvStation.FullID + " EPG: " + epg + epgLink + ") " + dataMissing);
             }
             else
             {
@@ -818,18 +816,18 @@ namespace EPGCollector
             return (reply);
         }
 
-        private static void runPluginCollection()
+        private static ExitCode RunPluginCollection()
         {
             RunParameters.Instance = new RunParameters(ParameterSet.Plugin, RunType.Collection);
-            ExitCode exitCode = RunParameters.Instance.Process(CommandLine.IniFileName);
-            if (exitCode != ExitCode.OK)
+            ExitCode result = RunParameters.Instance.Process(CommandLine.IniFileName);
+            if (result != ExitCode.OK)
             {
                 HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.ParameterError);
                 Logger.Write(HistoryRecord.Current);
 
                 Logger.Instance.Write("<e> Plugin parameters incorrect");
-                Logger.Instance.Write("<e> Exiting with code = " + (int)exitCode);
-                Environment.Exit((int)exitCode);
+                Logger.Instance.Write("<e> Exiting with code = " + (int)result);
+                return result;
             }
 
             PluginDataProvider dataProvider = new PluginDataProvider(RunParameters.Instance.FrequencyCollection[0], CommandLine.RunReference);
@@ -841,16 +839,16 @@ namespace EPGCollector
 
                 Logger.Instance.Write("<e> Plugin failed to start - " + response);
                 Logger.Instance.Write("<e> Exiting with code = " + ExitCode.PluginNotStarted);
-                Environment.Exit((int)ExitCode.PluginNotStarted);
+                return ExitCode.PluginNotStarted;
             }
 
-            EPGController.ProcessComplete += new EPGController.ProcessCompleteHandler(pluginProcessComplete);
+            EPGController.ProcessComplete += new EPGController.ProcessCompleteHandler(PluginProcessComplete);
             EPGController.Instance.Run(dataProvider, RunParameters.Instance.FrequencyCollection[0]);
 
             BackgroundWorker pluginAbandonWorker = new BackgroundWorker();
             pluginAbandonWorker.WorkerSupportsCancellation = true;
-            pluginAbandonWorker.DoWork += new DoWorkEventHandler(pluginAbandonWorkerDoWork);
-            pluginAbandonWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(pluginAbandonWorkerCompleted);
+            pluginAbandonWorker.DoWork += new DoWorkEventHandler(PluginAbandonWorkerDoWork);
+            pluginAbandonWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(PluginAbandonWorkerCompleted);
             pluginAbandonWorker.RunWorkerAsync();
 
             bool reply = endProgramEvent.WaitOne();
@@ -864,18 +862,18 @@ namespace EPGCollector
 
                 Logger.Instance.Write("Cancelled by user - no data created");
                 Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.AbandonedByUser);
-                System.Environment.Exit((int)ExitCode.AbandonedByUser);
+                return ExitCode.AbandonedByUser;
             }
 
             HistoryRecord.Current.CollectionDuration = DateTime.Now - startTime;
 
             EPGController.Instance.FinishRun();
             if (RunParameters.Instance.AbandonRequested)
-                return;
+                return ExitCode.AbandonedByUser;
 
-            logDataCollected();
+            LogDataCollected();
 
-            string outputReply = OutputFile.ProcessPlugin();            
+            string outputReply = OutputFile.ProcessPlugin();
             if (outputReply != null)
             {
                 HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.OutputFileNotCreated);
@@ -884,13 +882,13 @@ namespace EPGCollector
                 Logger.Instance.Write("<e> The output data could not be created");
                 Logger.Instance.Write("<e> " + outputReply);
                 Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.OutputFileNotCreated);
-                System.Environment.Exit((int)ExitCode.OutputFileNotCreated);
+                return ExitCode.OutputFileNotCreated;
             }
 
             int recordCount = TVStation.EPGCount(RunParameters.Instance.StationCollection);
             Logger.Instance.Write("<C> Finished - created " + recordCount + " EPG entries");
-            HistoryRecord.Current.CollectionCount = recordCount; 
-            
+            HistoryRecord.Current.CollectionCount = recordCount;
+
             if (TVStation.EPGCount(RunParameters.Instance.StationCollection) == 0)
             {
                 HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.NoDataCollected);
@@ -898,7 +896,7 @@ namespace EPGCollector
 
                 Logger.Instance.Write("<e> No data collected");
                 Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.NoDataCollected);
-                System.Environment.Exit((int)ExitCode.NoDataCollected);
+                return ExitCode.NoDataCollected;
             }
 
             if (OptionEntry.IsDefined(OptionName.StoreStationInfo))
@@ -914,59 +912,59 @@ namespace EPGCollector
             }
 
             if (RunParameters.Instance.ChannelUpdateEnabled)
-                updateChannels();
+                UpdateChannels();
 
             HistoryRecord.Current.CollectionResult = CommandLine.GetCompletionCodeShortDescription(ExitCode.OK);
             Logger.Write(HistoryRecord.Current);
 
             Logger.Instance.Write("<C> Exiting with code = " + (int)ExitCode.OK);
-            System.Environment.Exit((int)ExitCode.OK);
+            return result;
         }
 
-        private static void pluginProcessComplete(object sender, EventArgs e)
+        private static void PluginProcessComplete(object sender, EventArgs e)
         {
             endProgramEvent.Set();
         }
 
-        private static void pluginAbandonWorkerDoWork(object sender, DoWorkEventArgs e)
+        private static void PluginAbandonWorkerDoWork(object sender, DoWorkEventArgs e)
         {
             string cancellationName = "EPG Collector Cancellation Mutex " + CommandLine.RunReference;
             Logger.Instance.Write("Cancellation mutex name is " + cancellationName);
-            
+
             Mutex cancelMutex = new Mutex(false, cancellationName);
 
             try
             {
                 cancelMutex.WaitOne();
                 cancelMutex.Close();
-            }       
+            }
             catch (AbandonedMutexException)
             {
-                Logger.Instance.Write("<E> TVSource has failed - the collection will be abandoned");                
+                Logger.Instance.Write("<E> TVSource has failed - the collection will be abandoned");
             }
-            
+
             pluginAbandon = true;
 
             endProgramEvent.Set();
         }
 
-        private static void pluginAbandonWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private static void PluginAbandonWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if (e.Error != null)
                 throw new InvalidOperationException("Plugin abandon background worker failed - see inner exception", e.Error);
         }
 
-        private static void updateChannels()
+        private static void UpdateChannels()
         {
             Logger.Instance.WriteSeparator("Channel Update Starting");
 
             DVBLinkController.Load();
-            
+
             if (RunParameters.Instance.ChannelReloadData)
                 DVBLinkController.ClearData();
 
-            Collection<Provider> providers = createProviderList();
-            
+            Collection<Provider> providers = CreateProviderList();
+
             foreach (Provider provider in providers)
                 provider.LogNetworkInfo();
 
@@ -983,7 +981,7 @@ namespace EPGCollector
                             frequency.SelectedTuners.Add(selectedTuner);
                     }
 
-                    if (!processFrequency(frequency))
+                    if (!ProcessFrequency(frequency))
                         unprocessedFrequencies.Add(frequency);
                     else
                         processed++;
@@ -997,10 +995,10 @@ namespace EPGCollector
             Logger.Instance.Write(processed + " frequencies processed");
             Logger.Instance.Write(unprocessedFrequencies.Count + " frequencies not processed");
             Logger.Instance.Write(string.Empty);
-            
+
             if (unprocessedFrequencies.Count != 0)
             {
-                Logger.Instance.Write(string.Empty);                
+                Logger.Instance.Write(string.Empty);
 
                 Logger.Instance.Write("The following frequencies have not been processed:");
 
@@ -1017,7 +1015,7 @@ namespace EPGCollector
             Logger.Instance.WriteSeparator("Channel Update Finished");
         }
 
-        private static bool processFrequency(TuningFrequency frequency)
+        private static bool ProcessFrequency(TuningFrequency frequency)
         {
             Thread.Sleep(1000);
 
@@ -1025,7 +1023,7 @@ namespace EPGCollector
             if (!DebugEntry.IsDefined(DebugName.NotQuiet))
                 Logger.Instance.QuietMode = true;
 
-            bool tuned = tuneFrequency(frequency);
+            bool tuned = TuneFrequency(frequency);
             Logger.Instance.QuietMode = false;
 
             if (!tuned)
@@ -1045,7 +1043,7 @@ namespace EPGCollector
             {
                 foreach (TVStation scannedStation in scannedStations)
                 {
-                    TVStation providerStation = findStation(frequency, scannedStation);
+                    TVStation providerStation = FindStation(frequency, scannedStation);
                     if (providerStation != null)
                         providerStation.Update(scannedStation);
                     else
@@ -1066,7 +1064,7 @@ namespace EPGCollector
                     }
                     else
                         Logger.Instance.Write("Scanned station " + scannedStation.FullDescription + " not loaded");
-                }                
+                }
             }
 
             DVBLinkController.Process(frequency);
@@ -1074,7 +1072,7 @@ namespace EPGCollector
             return (true);
         }
 
-        private static TVStation findStation(TuningFrequency frequency, TVStation scannedStation)
+        private static TVStation FindStation(TuningFrequency frequency, TVStation scannedStation)
         {
             foreach (TVStation station in frequency.Stations)
             {
@@ -1085,7 +1083,7 @@ namespace EPGCollector
             return (null);
         }
 
-        private static Collection<Provider> createProviderList()
+        private static Collection<Provider> CreateProviderList()
         {
             Collection<TransportStream> transportStreams = new Collection<TransportStream>();
 
@@ -1116,32 +1114,32 @@ namespace EPGCollector
             switch (RunParameters.Instance.FrequencyCollection[0].TunerType)
             {
                 case TunerType.Satellite:
-                    return (processSatelliteStream(transportStreams));
+                    return (ProcessSatelliteStream(transportStreams));
                 case TunerType.Terrestrial:
-                    return (processTerrestrialStream(transportStreams));
-                case TunerType.Cable:                
-                    return (processCableStream(transportStreams));
+                    return (ProcessTerrestrialStream(transportStreams));
+                case TunerType.Cable:
+                    return (ProcessCableStream(transportStreams));
                 default:
                     return (null);
             }
         }
 
-        private static Collection<Provider> processSatelliteStream(Collection<TransportStream> transportStreams)
+        private static Collection<Provider> ProcessSatelliteStream(Collection<TransportStream> transportStreams)
         {
             Collection<Provider> satellites = new Collection<Provider>();
 
             foreach (TransportStream transportStream in transportStreams)
-            {                
+            {
                 int orbitalPosition = (NetworkInformationSection.GetOrbitalPosition(transportStream.OriginalNetworkID, transportStream.TransportStreamID));
                 bool eastFlag = (NetworkInformationSection.GetEastFlag(transportStream.OriginalNetworkID, transportStream.TransportStreamID));
 
-                Satellite satellite = findSatellite(satellites, NetworkInformationSection.NetworkInformationSections[0].NetworkName,
+                Satellite satellite = FindSatellite(satellites, NetworkInformationSection.NetworkInformationSections[0].NetworkName,
                     orbitalPosition, eastFlag);
-                
-                SatelliteFrequency frequency = findFrequency(satellite, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) * 10);
+
+                SatelliteFrequency frequency = FindFrequency(satellite, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) * 10);
                 frequency.CollectionType = CollectionType.MHEG5;
                 frequency.FEC = FECRate.ConvertDVBFecRate(transportStream.Fec);
-                frequency.Modulation = getSatelliteModulation(transportStream.Modulation);
+                frequency.Modulation = GetSatelliteModulation(transportStream.Modulation);
                 frequency.DVBModulation = transportStream.Modulation;
                 frequency.Pilot = SignalPilot.Pilot.NotSet;
                 frequency.DVBPolarization = transportStream.Polarization;
@@ -1154,7 +1152,7 @@ namespace EPGCollector
                 frequency.SatelliteDish = ((SatelliteFrequency)RunParameters.Instance.FrequencyCollection[0]).SatelliteDish;
                 frequency.SymbolRate = transportStream.SymbolRate * 100;
                 frequency.Provider = satellite;
-                frequency.ModulationSystem = transportStream.ModulationSystem;  
+                frequency.ModulationSystem = transportStream.ModulationSystem;
 
                 Collection<ServiceListEntry> serviceListEntries = transportStream.ServiceList;
 
@@ -1163,7 +1161,7 @@ namespace EPGCollector
                     foreach (ServiceListEntry serviceListEntry in serviceListEntries)
                     {
                         TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection,
-                            transportStream.OriginalNetworkID, transportStream.TransportStreamID, 
+                            transportStream.OriginalNetworkID, transportStream.TransportStreamID,
                             serviceListEntry.ServiceID);
                         if (station != null)
                         {
@@ -1174,13 +1172,13 @@ namespace EPGCollector
                     }
                 }
 
-                addFrequency(satellite.Frequencies, frequency);
+                AddFrequency(satellite.Frequencies, frequency);
             }
 
             return (satellites);
         }
 
-        private static Satellite findSatellite(Collection<Provider> satellites, string name, int orbitalPosition, bool eastFlag)
+        private static Satellite FindSatellite(Collection<Provider> satellites, string name, int orbitalPosition, bool eastFlag)
         {
             string eastWest = eastFlag ? "east" : "west";
 
@@ -1200,7 +1198,7 @@ namespace EPGCollector
             return (newSatellite);
         }
 
-        private static SatelliteFrequency findFrequency(Satellite satellite, int frequency)
+        private static SatelliteFrequency FindFrequency(Satellite satellite, int frequency)
         {
             foreach (SatelliteFrequency oldFrequency in satellite.Frequencies)
             {
@@ -1218,7 +1216,7 @@ namespace EPGCollector
                 }
 
             }
-            
+
             SatelliteFrequency addFrequency = new SatelliteFrequency();
             addFrequency.Frequency = frequency;
 
@@ -1227,7 +1225,7 @@ namespace EPGCollector
             return (addFrequency);
         }
 
-        private static SignalModulation.Modulation getSatelliteModulation(int satelliteModulation)
+        private static SignalModulation.Modulation GetSatelliteModulation(int satelliteModulation)
         {
             switch (satelliteModulation)
             {
@@ -1242,7 +1240,7 @@ namespace EPGCollector
             }
         }
 
-        private static void addFrequency(Collection<TuningFrequency> frequencies, SatelliteFrequency newFrequency)
+        private static void AddFrequency(Collection<TuningFrequency> frequencies, SatelliteFrequency newFrequency)
         {
             foreach (TuningFrequency oldFrequency in frequencies)
             {
@@ -1267,17 +1265,17 @@ namespace EPGCollector
             frequencies.Add(newFrequency);
         }
 
-        private static Collection<Provider> processTerrestrialStream(Collection<TransportStream> transportStreams)
+        private static Collection<Provider> ProcessTerrestrialStream(Collection<TransportStream> transportStreams)
         {
             Collection<Provider> providers = new Collection<Provider>();
 
             foreach (TransportStream transportStream in transportStreams)
             {
-                TerrestrialProvider provider = findTerrestrialProvider(providers, NetworkInformationSection.NetworkInformationSections[0].NetworkName);
-                TerrestrialFrequency frequency = findFrequency(provider, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) * 10);
+                TerrestrialProvider provider = FindTerrestrialProvider(providers, NetworkInformationSection.NetworkInformationSections[0].NetworkName);
+                TerrestrialFrequency frequency = FindFrequency(provider, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) * 10);
                 frequency.CollectionType = CollectionType.MHEG5;
                 frequency.Bandwidth = transportStream.Bandwidth;
-                
+
                 Collection<ServiceListEntry> serviceListEntries = transportStream.ServiceList;
 
                 if (serviceListEntries != null && serviceListEntries.Count != 0)
@@ -1285,7 +1283,7 @@ namespace EPGCollector
                     foreach (ServiceListEntry serviceListEntry in serviceListEntries)
                     {
                         TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection,
-                            transportStream.OriginalNetworkID, transportStream.TransportStreamID, 
+                            transportStream.OriginalNetworkID, transportStream.TransportStreamID,
                             serviceListEntry.ServiceID);
                         if (station != null)
                         {
@@ -1296,13 +1294,13 @@ namespace EPGCollector
                     }
                 }
 
-                addFrequency(provider.Frequencies, frequency);
+                AddFrequency(provider.Frequencies, frequency);
             }
 
             return (providers);
         }
 
-        private static TerrestrialProvider findTerrestrialProvider(Collection<Provider> providers, string name)
+        private static TerrestrialProvider FindTerrestrialProvider(Collection<Provider> providers, string name)
         {
             foreach (TerrestrialProvider provider in providers)
             {
@@ -1316,7 +1314,7 @@ namespace EPGCollector
             return (newProvider);
         }
 
-        private static TerrestrialFrequency findFrequency(TerrestrialProvider provider, int frequency)
+        private static TerrestrialFrequency FindFrequency(TerrestrialProvider provider, int frequency)
         {
             foreach (TerrestrialFrequency oldFrequency in provider.Frequencies)
             {
@@ -1343,18 +1341,18 @@ namespace EPGCollector
             return (addFrequency);
         }
 
-        private static Collection<Provider> processCableStream(Collection<TransportStream> transportStreams)
+        private static Collection<Provider> ProcessCableStream(Collection<TransportStream> transportStreams)
         {
             Collection<Provider> providers = new Collection<Provider>();
 
             foreach (TransportStream transportStream in transportStreams)
             {
-                CableProvider provider = findCableProvider(providers, NetworkInformationSection.NetworkInformationSections[0].NetworkName);
-                CableFrequency frequency = findFrequency(provider, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) / 10);
+                CableProvider provider = FindCableProvider(providers, NetworkInformationSection.NetworkInformationSections[0].NetworkName);
+                CableFrequency frequency = FindFrequency(provider, NetworkInformationSection.GetFrequency(transportStream.OriginalNetworkID, transportStream.TransportStreamID) / 10);
                 frequency.CollectionType = CollectionType.MHEG5;
                 frequency.FEC = FECRate.ConvertDVBFecRate(transportStream.CableFec);
                 frequency.DVBModulation = transportStream.CableModulation;
-                frequency.Modulation = getCableModulation(transportStream.CableModulation);                
+                frequency.Modulation = GetCableModulation(transportStream.CableModulation);
                 frequency.SymbolRate = transportStream.CableSymbolRate * 100;
 
                 Collection<ServiceListEntry> serviceListEntries = transportStream.ServiceList;
@@ -1363,8 +1361,8 @@ namespace EPGCollector
                 {
                     foreach (ServiceListEntry serviceListEntry in serviceListEntries)
                     {
-                        TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection, 
-                            transportStream.OriginalNetworkID, transportStream.TransportStreamID, 
+                        TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection,
+                            transportStream.OriginalNetworkID, transportStream.TransportStreamID,
                             serviceListEntry.ServiceID);
                         if (station != null)
                         {
@@ -1375,13 +1373,13 @@ namespace EPGCollector
                     }
                 }
 
-                addFrequency(provider.Frequencies, frequency);
+                AddFrequency(provider.Frequencies, frequency);
             }
 
             return (providers);
         }
 
-        private static CableProvider findCableProvider(Collection<Provider> providers, string name)
+        private static CableProvider FindCableProvider(Collection<Provider> providers, string name)
         {
             foreach (CableProvider provider in providers)
             {
@@ -1395,7 +1393,7 @@ namespace EPGCollector
             return (newProvider);
         }
 
-        private static CableFrequency findFrequency(CableProvider provider, int frequency)
+        private static CableFrequency FindFrequency(CableProvider provider, int frequency)
         {
             foreach (CableFrequency oldFrequency in provider.Frequencies)
             {
@@ -1422,7 +1420,7 @@ namespace EPGCollector
             return (addFrequency);
         }
 
-        private static SignalModulation.Modulation getCableModulation(int cableModulation)
+        private static SignalModulation.Modulation GetCableModulation(int cableModulation)
         {
             switch (cableModulation)
             {
@@ -1441,7 +1439,7 @@ namespace EPGCollector
             }
         }
 
-        private static void addFrequency(Collection<TuningFrequency> frequencies, TuningFrequency newFrequency)
+        private static void AddFrequency(Collection<TuningFrequency> frequencies, TuningFrequency newFrequency)
         {
             foreach (TuningFrequency oldFrequency in frequencies)
             {

@@ -27,6 +27,8 @@ using System.Security;
 using System.Runtime.InteropServices.ComTypes;
 
 using DomainObjects;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DirectShowAPI
 {
@@ -115,7 +117,7 @@ namespace DirectShowAPI
         /// Pin is connected.
         /// </summary>
         Connected
-    }    
+    }
 
     /// <summary>
     /// DsLong is a wrapper class around a <see cref="System.Int64"/> value type.
@@ -527,7 +529,7 @@ namespace DirectShowAPI
         /// <param name="max">The maximum length of the error message.</param>
         /// <returns></returns>
         [DllImport("quartz.dll", CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "AMGetErrorTextW"),
-        SuppressUnmanagedCodeSecurity]        
+        SuppressUnmanagedCodeSecurity]
         public static extern int AMGetErrorText(int hr, StringBuilder buf, int max);
 
         /// <summary>
@@ -575,7 +577,7 @@ namespace DirectShowAPI
             return null;
         }
     }
-     
+
     /// <summary>
     /// Utilities class.
     /// </summary>
@@ -654,7 +656,6 @@ namespace DirectShowAPI
         {
             if (pinInfo.filter != null)
             {
-                Marshal.ReleaseComObject(pinInfo.filter);
                 pinInfo.filter = null;
             }
         }
@@ -662,25 +663,27 @@ namespace DirectShowAPI
     }
 
     /// <summary>
-    /// Defines a DirectShow device.
+    /// Defines a DirectShow device
     /// </summary>
-    public class DsDevice : IDisposable
+    public class DsDevice
     {
-        /// <summary>
-        /// Get the moniker.
-        /// </summary>
-        public IMoniker Moniker { get { return moniker; } }
+        private string _name;
 
         /// <summary>
-        ///  Get the name.
+        /// Get the moniker
+        /// </summary>
+        public IMoniker Moniker { get; }
+
+        /// <summary>
+        ///  Get the name
         /// </summary>
         public string Name
         {
             get
             {
-                if (name == null)
-                    name = getPropBagValue("FriendlyName");
-                return (name);
+                if (_name == null)
+                    _name = GetPropBagValue("FriendlyName");
+                return _name;
             }
         }
 
@@ -695,11 +698,11 @@ namespace DirectShowAPI
 
                 try
                 {
-                    moniker.GetDisplayName(null, null, out devicePath);
+                    Moniker.GetDisplayName(null, null, out devicePath);
                 }
                 catch { }
 
-                return (devicePath);
+                return devicePath;
             }
         }
 
@@ -710,16 +713,12 @@ namespace DirectShowAPI
         {
             get
             {
-                Guid guid;
+                Moniker.GetClassID(out Guid guid);
 
-                moniker.GetClassID(out guid);
-
-                return (guid);
+                return guid;
             }
         }
 
-        private IMoniker moniker;
-        private string name;
 
         /// <summary>
         /// Initialize a new instance of the DsDevice class.
@@ -727,8 +726,8 @@ namespace DirectShowAPI
         /// <param name="moniker">The devices moniker.</param>
         public DsDevice(IMoniker moniker)
         {
-            this.moniker = moniker;
-            name = null;
+            Moniker = moniker ?? throw new ArgumentNullException(nameof(moniker));
+            _name = null;
         }
 
         /// <summary>
@@ -737,66 +736,35 @@ namespace DirectShowAPI
         /// <param name="FilterCategory">Any one of FilterCategory</param>
         public static DsDevice[] GetDevicesOfCat(Guid FilterCategory)
         {
-            int hr;
-
-            // Use arrayList to build the return list since it is easily resizable
-            DsDevice[] devret;
-            ArrayList devs = new ArrayList();
-            IEnumMoniker enumMon;
-
-            ICreateDevEnum enumDev = (ICreateDevEnum)new CreateDevEnum();
-            hr = enumDev.CreateClassEnumerator(FilterCategory, out enumMon, 0);
+            ICreateDevEnum factory = (ICreateDevEnum)new CreateDevEnum();
+            int hr = factory.CreateClassEnumerator(FilterCategory, out IEnumMoniker enumerator, 0);
             DsError.ThrowExceptionForHR(hr);
 
+            DsDevice[] result;
             // CreateClassEnumerator returns null for enumMon if there are no entries
             if (hr != 1)
             {
-                try
-                {
-                    try
-                    {
-                        IMoniker[] mon = new IMoniker[1];
+                IList<DsDevice> devices = new List<DsDevice>();
 
-                        while ((enumMon.Next(1, mon, IntPtr.Zero) == 0))
-                        {
-                            try
-                            {
-                                // The devs array now owns this object.  Don't
-                                // release it if we are going to be successfully
-                                // returning the devret array
-                                devs.Add(new DsDevice(mon[0]));
-                            }
-                            catch
-                            {
-                                Marshal.ReleaseComObject(mon[0]);
-                                throw;
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        Marshal.ReleaseComObject(enumMon);
-                    }
-
-                    // Copy the ArrayList to the DsDevice[]
-                    devret = new DsDevice[devs.Count];
-                    devs.CopyTo(devret);
-                }
-                catch
+                var values = new IMoniker[1];
+                while (enumerator.Next(1, values, IntPtr.Zero) == 0)
                 {
-                    foreach (DsDevice d in devs)
-                    {
-                        d.Dispose();
-                    }
-                    throw;
+                    var value = values[0];
+
+                    // The devs array now owns this object.  Don't
+                    // release it if we are going to be successfully
+                    // returning the devret array
+                    devices.Add(new DsDevice(value));
                 }
+
+                result = devices.ToArray();
             }
             else
             {
-                devret = new DsDevice[0];
+                result = Array.Empty<DsDevice>();
             }
 
-            return devret;
+            return result;
         }
 
         /// <summary>
@@ -804,54 +772,17 @@ namespace DirectShowAPI
         /// </summary>
         /// <param name="sPropName">The name of the value to retrieve</param>
         /// <returns>String or null on error</returns>
-        private string getPropBagValue(string sPropName)
+        private string GetPropBagValue(string sPropName)
         {
-            IPropertyBag bag = null;
-            string returnValue = null;
-            object bagObj = null;
-            object val = null;
+            Guid bagId = typeof(IPropertyBag).GUID;
+            Moniker.BindToStorage(null, null, ref bagId, out object bagObj);
 
-            try
-            {
-                Guid bagId = typeof(IPropertyBag).GUID;
-                moniker.BindToStorage(null, null, ref bagId, out bagObj);
+            IPropertyBag bag = (IPropertyBag)bagObj;
 
-                bag = (IPropertyBag)bagObj;
+            int hr = bag.Read(sPropName, out object val, null);
+            DsError.ThrowExceptionForHR(hr);
 
-                int hr = bag.Read(sPropName, out val, null);
-                DsError.ThrowExceptionForHR(hr);
-
-                returnValue = val as string;
-            }
-            catch
-            {
-                returnValue = null;
-            }
-            finally
-            {
-                bag = null;
-                if (bagObj != null)
-                {
-                    Marshal.ReleaseComObject(bagObj);
-                    bagObj = null;
-                }
-            }
-
-            return (returnValue);
-        }
-
-        /// <summary>
-        /// Dispose of the device.
-        /// </summary>
-        public void Dispose()
-        {
-            if (moniker != null)
-            {
-                Marshal.ReleaseComObject(moniker);
-                moniker = null;
-            }
-
-            name = null;
+            return (string)val;
         }
     }
 
@@ -869,50 +800,40 @@ namespace DirectShowAPI
         /// <returns>The matching pin, or null if not found</returns>
         public static IPin ByDirection(IBaseFilter vSource, PinDirection vDir, int iIndex)
         {
-            int hr;
-            IEnumPins ppEnum;
-            PinDirection ppindir;
-            IPin pRet = null;
-            IPin[] pPins = new IPin[1];
-
-            if (vSource == null)
+            if (vSource is null)
             {
                 return null;
             }
 
             // Get the pin enumerator
-            hr = vSource.EnumPins(out ppEnum);
+            int hr = vSource.EnumPins(out IEnumPins enumerator);
             DsError.ThrowExceptionForHR(hr);
 
-            try
-            {
-                // Walk the pins looking for a match
-                while (ppEnum.Next(1, pPins, IntPtr.Zero) == 0)
-                {
-                    // Read the direction
-                    hr = pPins[0].QueryDirection(out ppindir);
-                    DsError.ThrowExceptionForHR(hr);
+            IPin result = null;
 
-                    // Is it the right direction?
-                    if (ppindir == vDir)
+            // Walk the pins looking for a match
+            IPin[] values = new IPin[1];
+            while (enumerator.Next(1, values, IntPtr.Zero) == 0)
+            {
+                var value = values[0];
+
+                hr = value.QueryDirection(out PinDirection direction);
+                DsError.ThrowExceptionForHR(hr);
+
+                // Is it the right direction?
+                if (direction == vDir)
+                {
+                    // Is this the right index?
+                    if (iIndex == 0)
                     {
-                        // Is is the right index?
-                        if (iIndex == 0)
-                        {
-                            pRet = pPins[0];
-                            break;
-                        }
-                        iIndex--;
+                        result = value;
+                        break;
                     }
-                    Marshal.ReleaseComObject(pPins[0]);
+                    iIndex--;
                 }
             }
-            finally
-            {
-                Marshal.ReleaseComObject(ppEnum);
-            }
 
-            return pRet;
+            return result;
         }
 
         /// <summary>
@@ -923,47 +844,37 @@ namespace DirectShowAPI
         /// <returns>The matching pin, or null if not found</returns>
         public static IPin ByName(IBaseFilter vSource, string vPinName)
         {
-            int hr;
-            IEnumPins ppEnum;
-            PinInfo ppinfo;
-            IPin pRet = null;
-            IPin[] pPins = new IPin[1];
-
             if (vSource == null)
             {
                 return null;
             }
 
-            // Get the pin enumerator
-            hr = vSource.EnumPins(out ppEnum);
+            int hr = vSource.EnumPins(out IEnumPins enumerator);
             DsError.ThrowExceptionForHR(hr);
 
-            try
+            IPin result = null;
+
+            // Walk the pins looking for a match
+            IPin[] values = new IPin[1];
+            while (enumerator.Next(1, values, IntPtr.Zero) == 0)
             {
-                // Walk the pins looking for a match
-                while (ppEnum.Next(1, pPins, IntPtr.Zero) == 0)
+                var value = values[0];
+
+                // Read the info
+                hr = value.QueryPinInfo(out PinInfo ppinfo);
+                DsError.ThrowExceptionForHR(hr);
+
+                // Is it the right name?
+                if (ppinfo.name == vPinName)
                 {
-                    // Read the info
-                    hr = pPins[0].QueryPinInfo(out ppinfo);
-                    DsError.ThrowExceptionForHR(hr);
-
-                    // Is it the right name?
-                    if (ppinfo.name == vPinName)
-                    {
-                        DsUtils.FreePinInfo(ppinfo);
-                        pRet = pPins[0];
-                        break;
-                    }
-                    Marshal.ReleaseComObject(pPins[0]);
                     DsUtils.FreePinInfo(ppinfo);
+                    result = value;
+                    break;
                 }
-            }
-            finally
-            {
-                Marshal.ReleaseComObject(ppEnum);
+                DsUtils.FreePinInfo(ppinfo);
             }
 
-            return pRet;
+            return result;
         }
     }
 

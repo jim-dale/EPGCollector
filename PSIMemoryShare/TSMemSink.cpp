@@ -140,10 +140,10 @@ STDMETHODIMP CTSMemSinkPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tSt
 //
 //  CTSMemSinkFilter class
 //
-CTSMemSinkFilter::CTSMemSinkFilter(LPUNKNOWN pUnk, HRESULT *phr, bool logging, char* logFileName, bool dumping, char* dumpFileName, int bufferSize) :
+CTSMemSinkFilter::CTSMemSinkFilter(LPUNKNOWN pUnk, HRESULT* phr, bool logging, char* logFileName, bool dumping, char* dumpFileName, int bufferSize) :
 	CBaseFilter(NAME("PSIMemorySinkFilter"), pUnk, &m_Lock, CLSID_TSMemSinkFilter),
-    m_pPin(NULL),
-    m_pPosition(NULL),
+    m_pPin(nullptr),
+    m_pPosition(nullptr),
 	m_hFile(INVALID_HANDLE_VALUE),
 	m_hDumpFile(INVALID_HANDLE_VALUE),
     writeLogFile(0),
@@ -172,7 +172,7 @@ CTSMemSinkFilter::CTSMemSinkFilter(LPUNKNOWN pUnk, HRESULT *phr, bool logging, c
 		OpenDumpFile(dumpFileName);
 
 	m_pPin = new CTSMemSinkPin(this, GetOwner(), &m_Lock, &m_ReceiveLock, phr);
-    if (m_pPin == NULL)
+    if (m_pPin == nullptr)
 	{
         if (phr)
             *phr = E_OUTOFMEMORY;
@@ -773,11 +773,13 @@ HRESULT CTSMemSinkFilter::Write(PBYTE pbData, LONG lDataLength)
 extern "C" {
 	__declspec(dllexport) HRESULT __cdecl CreatePSIMemoryFilter(IGraphBuilder *graphBuilder, bool logging, char* logFileName, bool dumping, char* dumpFileName, int bufferSize)
 	{
-		CTSMemSinkFilter *m_pSink = new CTSMemSinkFilter(NULL, NULL, logging, logFileName, dumping, dumpFileName, bufferSize);
+		HRESULT hr = S_OK;
+
+		CTSMemSinkFilter *m_pSink = new CTSMemSinkFilter(nullptr, &hr, logging, logFileName, dumping, dumpFileName, bufferSize);
 		m_pSink->AddRef();
 
 		IBaseFilter* pSinkFilter;
-		HRESULT hr = m_pSink->QueryInterface(IID_IBaseFilter, (void**)&pSinkFilter);
+		hr = m_pSink->QueryInterface(IID_IBaseFilter, (void**)&pSinkFilter);
 		if (SUCCEEDED(hr)) 
 		{
 			hr = graphBuilder->AddFilter(pSinkFilter, L"PSI Memory Filter");

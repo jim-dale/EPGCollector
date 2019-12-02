@@ -60,20 +60,18 @@ namespace DirectShow
         {
             IBDA_Topology topology = filter as IBDA_Topology;
             if (topology == null)
-                return (null);
+            {
+                return null;
+            }
 
-            object controlNode;
-            reply = topology.GetControlNode(0, 1, 0, out controlNode);
+            reply = topology.GetControlNode(0, 1, 0, out object controlNode);
             if (reply == 0 && controlNode is IBDA_FrequencyFilter)
             {
                 Logger.Instance.Write("Legacy DiSEqC Handler: Using Set Range method");
-                return (controlNode as IBDA_FrequencyFilter);
+                return controlNode as IBDA_FrequencyFilter;
             }
 
-            if (controlNode != null)
-                Marshal.ReleaseComObject(controlNode);
-
-            return (null);
+            return null;
         }
 
         /// <summary>

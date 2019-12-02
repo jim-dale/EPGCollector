@@ -48,8 +48,8 @@ namespace EPGCentre
         {
             get
             {
-                System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return (version.Major + "." + version.Minor + "." + version.Build + "." + version.Revision);
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version.ToString();
             }
         }
 

@@ -36,6 +36,8 @@ namespace Lookups
 {
     internal class MovieLookup
     {
+        private const string DefaultFileName = "Movie Database.xml";
+
         internal int WebLookups { get; private set; }
         internal int InStoreLookups { get; private set; }
 
@@ -45,123 +47,115 @@ namespace Lookups
 
         private int noData;
         private int outstanding;
-        
+
         private Collection<MovieEntry> movies;
-                
+
         private int webExceptionCount;
         private bool webException;
         private int webErrors;
         private int duplicatesDeleted;
         private int thresholdExclusions;
-        
+
         private DateTime startTime;
-        
+
         private TmdbAPI apiInstance;
 
         private int referencedPosters = 0;
         private int unmatchedDeleted = 0;
         private int unmatchedNotDeleted = 0;
 
-        internal MovieLookup() 
+        internal MovieLookup()
         {
             try
             {
                 apiInstance = new TmdbAPI("b5410cd85abf11ab7e32d6addd5d5963");
                 Initialized = true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Instance.Write("<e> An exception of type " + e.GetType().Name + " has occured while connecting to TMDB");
-                Logger.Instance.Write("<e> " + e.Message);
-                Logger.Instance.Write("<e> No movie metadata available");                
+                Logger.Instance.Write("<e> An exception of type " + ex.GetType().Name + " has occured while connecting to TMDB");
+                Logger.Instance.Write("<e> " + ex.Message);
+                Logger.Instance.Write("<e> No movie metadata available");
                 return;
             }
 
-            loadMovieDatabase();
+            LoadMovieDatabase();
+
             startTime = DateTime.Now;
         }
 
-        private void loadMovieDatabase()
+        private void LoadMovieDatabase()
         {
             movies = new Collection<MovieEntry>();
 
             if (RunParameters.Instance.LookupReload)
             {
-                clearExistingData();
+                ClearExistingData();
                 return;
             }
-            
-            MovieEntry movie = null;
-            XmlReader reader = null;
 
-            XmlReaderSettings settings = new XmlReaderSettings();
-            settings.IgnoreWhitespace = true;
-
-            string path = Path.Combine(RunParameters.DataDirectory, "Movie Database.xml");
+            var path = Path.Combine(RunParameters.DataDirectory, DefaultFileName);
+            if (File.Exists(path) == false)
+            {
+                return;
+            }
 
             Logger.Instance.Write("Loading movie database from " + path);
             int notFoundCount = 0;
 
             try
             {
-                reader = XmlReader.Create(path, settings);
-            }
-            catch (IOException)
-            {
-                Logger.Instance.Write("Movie database cannot be opened");
-                return;
-            }
-
-            try
-            {
-                while (!reader.EOF)
+                using (var reader = XmlReader.Create(path, new XmlReaderSettings { IgnoreWhitespace = true }))
                 {
-                    reader.Read();
-                    if (reader.IsStartElement())
+                    while (reader.EOF == false)
                     {
-                        switch (reader.Name.ToLowerInvariant())
+                        reader.Read();
+                        if (reader.IsStartElement())
                         {
-                            case "movie":
-                                movie = new MovieEntry(reader.GetAttribute("title"), reader.GetAttribute("metaDataTitle"));                                
-                                movie.Status = reader.GetAttribute("status");                                
-                                movie.Load(reader.ReadSubtree());
+                            switch (reader.Name.ToLowerInvariant())
+                            {
+                                case "movie":
+                                    var movie = new MovieEntry(reader.GetAttribute("title"), reader.GetAttribute("metaDataTitle"));
+                                    movie.Status = reader.GetAttribute("status");
+                                    movie.Load(reader.ReadSubtree());
 
-                                movies.Add(movie);
-                                if (movie.Status == "notfound")
-                                    notFoundCount++;
-
-                                break;
-                            default:
-                                break;
+                                    movies.Add(movie);
+                                    if (movie.Status == "notfound")
+                                    {
+                                        notFoundCount++;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
-                }                   
+                }
             }
-            catch (XmlException e)
+            catch (XmlException ex)
             {
                 Logger.Instance.Write("Failed to load file " + path);
-                Logger.Instance.Write("Data exception: " + e.Message);
+                Logger.Instance.Write("Data exception: " + ex.Message);
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to load file " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
-
-            if (reader != null)
-                reader.Close();
 
             Logger.Instance.Write("Loaded " + movies.Count + " movies (not found = " + notFoundCount + ")");
         }
 
-        private void addMovie(MovieEntry newEntry)
+        private void AddMovie(MovieEntry newEntry)
         {
-            foreach (MovieEntry oldEntry in movies)
+            foreach (var item in movies)
             {
-                if (oldEntry.Title == newEntry.Title && oldEntry.MetaDataTitle == newEntry.MetaDataTitle)
+                if (item.Title == newEntry.Title && item.MetaDataTitle == newEntry.MetaDataTitle)
                 {
                     if (TraceEntry.IsDefined(TraceName.Lookups))
+                    {
                         Logger.Instance.Write("Duplicate movie database entry ignored for " + newEntry.ToString());
+                    }
 
                     duplicatesDeleted++;
                     return;
@@ -171,34 +165,34 @@ namespace Lookups
             movies.Add(newEntry);
         }
 
-        private void clearExistingData()
+        private void ClearExistingData()
         {
             Logger.Instance.Write("Clearing existing movie data");
 
-            string path = Path.Combine(RunParameters.DataDirectory, "Movie Database.xml");
+            var path = Path.Combine(RunParameters.DataDirectory, DefaultFileName);
 
             try
             {
                 File.Delete(path);
                 Logger.Instance.Write("Movie database deleted");
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to delete " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException ex)
             {
                 Logger.Instance.Write("Failed to delete " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
 
             if (Directory.Exists(RunParameters.ImagePath))
             {
-                DirectoryInfo directory = new DirectoryInfo(RunParameters.ImagePath);
-                FileInfo[] files = directory.GetFiles("*.jpg", SearchOption.TopDirectoryOnly);
+                var directory = new DirectoryInfo(RunParameters.ImagePath);
+                var files = directory.GetFiles("*.jpg", SearchOption.TopDirectoryOnly);
 
-                foreach (FileInfo file in files)
+                foreach (var file in files)
                 {
                     try
                     {
@@ -225,12 +219,12 @@ namespace Lookups
 
         internal LookupController.LookupReply Process(EPGEntry epgEntry)
         {
-            bool isMovie = checkForMovie(epgEntry);
+            bool isMovie = CheckForMovie(epgEntry);
             if (!isMovie)
-                return (LookupController.LookupReply.NotMovie);
+                return LookupController.LookupReply.NotMovie;
 
             if (epgEntry.EventName == null || epgEntry.ShortDescription == null)
-                return (LookupController.LookupReply.NoData);
+                return LookupController.LookupReply.NoData;
 
             if (TraceEntry.IsDefined(TraceName.LookupName))
             {
@@ -239,35 +233,35 @@ namespace Lookups
                 if (traceEntry != null && traceEntry.StringParameterSet)
                 {
                     if (epgEntry.EventName != traceEntry.StringParameter)
-                        return (LookupController.LookupReply.NoData);
+                        return LookupController.LookupReply.NoData;
                 }
             }
 
-            string searchDate;
-            string searchTitle = getSearchNameAndDate(epgEntry.EventName, out searchDate);
+            var searchTitle = GetSearchNameAndDate(epgEntry.EventName, out string searchDate);
             if (epgEntry.Date != null)
                 searchDate = epgEntry.Date;
 
             if (TraceEntry.IsDefined(TraceName.Lookups))
+            {
                 Logger.Instance.Write("Processing movie " + epgEntry.EventName +
                     (searchDate != null ? " from " + searchDate : string.Empty));
-
+            }
             if (RunParameters.Instance.LookupNotMovie != null)
             {
                 string lowerCaseTitle = searchTitle.ToLowerInvariant();
 
-                foreach (string notMovie in RunParameters.Instance.LookupNotMovie)
+                foreach (var notMovie in RunParameters.Instance.LookupNotMovie)
                 {
                     if (notMovie.ToLowerInvariant() == lowerCaseTitle)
                     {
                         if (TraceEntry.IsDefined(TraceName.Lookups))
                             Logger.Instance.Write("The programme " + searchTitle + " is defined by the user as not a movie");
-                        return (LookupController.LookupReply.NotMovie);
+                        return LookupController.LookupReply.NotMovie;
                     }
                 }
             }
 
-            MovieEntry existingMovie = findMovie(searchTitle, searchDate);
+            var existingMovie = FindMovie(searchTitle, searchDate);
             if (existingMovie != null)
             {
                 if (TraceEntry.IsDefined(TraceName.Lookups))
@@ -275,9 +269,9 @@ namespace Lookups
 
                 if (existingMovie.Found)
                 {
-                    processMovie(epgEntry, existingMovie);
+                    ProcessMovie(epgEntry, existingMovie);
                     InStoreLookups++;
-                    return (LookupController.LookupReply.InStore);
+                    return LookupController.LookupReply.InStore;
                 }
                 else
                 {
@@ -286,7 +280,7 @@ namespace Lookups
                         existingMovie.UsedThisTime = true;
                         existingMovie.DateLastUsed = DateTime.Now;
                         noData++;
-                        return (LookupController.LookupReply.NoData);
+                        return LookupController.LookupReply.NoData;
                     }
                 }
 
@@ -298,7 +292,7 @@ namespace Lookups
                     Logger.Instance.Write("Lookups timed out - entry ignored");
 
                 outstanding++;
-                return (LookupController.LookupReply.NotProcessed);
+                return LookupController.LookupReply.NotProcessed;
             }
 
             if (webException)
@@ -307,12 +301,12 @@ namespace Lookups
                     Logger.Instance.Write("Web exception limit reached (" + RunParameters.Instance.LookupErrorLimit + ") - entry ignored");
 
                 outstanding++;
-                return (LookupController.LookupReply.NotProcessed);
+                return LookupController.LookupReply.NotProcessed;
             }
 
             try
             {
-                TmdbMovieSearchResults results = TmdbMovie.Search(apiInstance, searchTitle);
+                var results = TmdbMovie.Search(apiInstance, searchTitle);
                 webExceptionCount = 0;
 
                 if (results.TotalResults == 0)
@@ -329,34 +323,32 @@ namespace Lookups
                         Logger.Instance.Write("No results for " + epgEntry.EventName);
 
                     noData++;
-                    return (LookupController.LookupReply.NoData);
+                    return LookupController.LookupReply.NoData;
                 }
 
                 if (TraceEntry.IsDefined(TraceName.Lookups))
                     Logger.Instance.Write("Retrieved " + results.TotalResults + " matches");
 
-                TmdbMovie movie = findMovieEntry(results.Movies, searchTitle, searchDate);
+                var movie = FindMovieEntry(results.Movies, searchTitle, searchDate);
                 if (movie != null)
                 {
                     if (TraceEntry.IsDefined(TraceName.Lookups))
                         Logger.Instance.Write("Found " + movie.Title +
                             " from " + movie.ReleaseDate.Year);
 
-                    MovieEntry newMovie = createMovieEntry(searchTitle, movie, epgEntry.EventName);
+                    var newMovie = CreateMovieEntry(searchTitle, movie, epgEntry.EventName);
                     if (newMovie != null)
                     {
-                        processMovie(epgEntry, newMovie);
+                        ProcessMovie(epgEntry, newMovie);
                         WebLookups++;
-                        return (LookupController.LookupReply.WebLookup);
+                        return LookupController.LookupReply.WebLookup;
                     }
                     else
                     {
                         noData++;
-                        return (LookupController.LookupReply.NoData);
+                        return LookupController.LookupReply.NoData;
                     }
                 }
-
-                
 
                 movies.Add(MovieEntry.CreateNotFoundEntry(searchTitle));
 
@@ -364,9 +356,9 @@ namespace Lookups
                     Logger.Instance.Write("No matching result for " + epgEntry.EventName);
 
                 noData++;
-                return (LookupController.LookupReply.NoData);
+                return LookupController.LookupReply.NoData;
             }
-            catch (WebException e)
+            catch (WebException ex)
             {
                 webErrors++;
                 webExceptionCount++;
@@ -374,53 +366,55 @@ namespace Lookups
                 if (webExceptionCount < RunParameters.Instance.LookupErrorLimit)
                 {
                     Logger.Instance.Write("<e> Movie lookup has encountered an error when searching for '" + searchTitle + "'");
-                    Logger.Instance.Write("<e> " + e.Message);
+                    Logger.Instance.Write("<e> " + ex.Message);
 
                     if (DebugEntry.IsDefined(DebugName.LogResponseKeys) && apiInstance.ResponseKeys != null)
                     {
                         foreach (DictionaryEntry dictionaryEntry in apiInstance.ResponseKeys)
+                        {
                             Logger.Instance.Write("Response key: " + dictionaryEntry.Key + " value: " + dictionaryEntry.Value);
+                        }
                     }
                 }
                 else
                     webException = true;
 
                 noData++;
-                return (LookupController.LookupReply.NoData);
+                return LookupController.LookupReply.NoData;
             }
         }
 
-        private bool checkForMovie(EPGEntry epgEntry)
+        private bool CheckForMovie(EPGEntry epgEntry)
         {
             if (!RunParameters.Instance.LookupIgnoreCategories && epgEntry.EventCategory != null && epgEntry.EventCategory.GetDescription(EventCategoryMode.Xmltv).ToLowerInvariant().Contains("movie"))
-                return (true);
+                return true;
 
             if (RunParameters.Instance.LookupMoviePhrases != null && epgEntry.EventName != null)
             {
                 foreach (string phrase in RunParameters.Instance.LookupMoviePhrases)
                 {
                     if (epgEntry.EventName.ToLowerInvariant().Contains(phrase.ToLowerInvariant()))
-                        return (true);
+                        return true;
                 }
             }
 
             if (RunParameters.Instance.MovieLowTime != 0 || RunParameters.Instance.MovieHighTime != 0)
             {
                 if (epgEntry.Duration.TotalMinutes >= RunParameters.Instance.MovieLowTime && epgEntry.Duration.TotalMinutes <= RunParameters.Instance.MovieHighTime)
-                    return (true);
+                    return true;
             }
 
-            return (false);
+            return false;
         }
 
-        private string getSearchNameAndDate(string eventName, out string searchDate)
+        private string GetSearchNameAndDate(string eventName, out string searchDate)
         {
             searchDate = null;
             string searchName = eventName;
 
             if (eventName == null)
-                return (searchName);            
-            
+                return (searchName);
+
             int yearStart = eventName.IndexOf("(");
             if (yearStart != -1)
             {
@@ -444,7 +438,7 @@ namespace Lookups
                     }
                 }
             }
-            
+
             if (RunParameters.Instance.LookupIgnoredPhrases != null)
             {
                 foreach (string phrase in RunParameters.Instance.LookupIgnoredPhrases)
@@ -454,53 +448,40 @@ namespace Lookups
             return (searchName.Trim());
         }
 
-        private MovieEntry findMovie(string title, string date)
+        private MovieEntry FindMovie(string title, string date)
         {
             if (title == null)
-                return (null);
+                return null;
 
             string noCaseTitle = title.ToLowerInvariant();
 
-            foreach (MovieEntry movie in movies)
+            foreach (var movie in movies)
             {
                 if (movie.Title != null && movie.Title.ToLowerInvariant() == noCaseTitle)
                 {
                     if (date == null)
-                        return (movie);
+                        return movie;
                     else
-                    {                        
-                        if (checkYear(movie.ReleaseDate, date))
-                            return (movie);
+                    {
+                        if (CheckYear(movie.ReleaseDate, date))
+                            return movie;
                     }
                 }
             }
 
-            foreach (MovieEntry movie in movies)
+            foreach (var movie in movies)
             {
                 if (movie.Title != null && movie.Title.ToLowerInvariant() == noCaseTitle)
                 {
                     if (movie.ReleaseDate == null)
-                        return (movie);
+                        return movie;
                 }
             }
 
-            return (null);
+            return null;
         }
 
-        private bool checkYear(string movieYear, string yearString)
-        {
-            if (movieYear == null)
-                return (false);
-
-            try
-            {
-                return (checkYear(Int32.Parse(movieYear), yearString));
-            }
-            catch (FormatException) { return (false); }
-            catch (OverflowException) { return (false); }
-        }
-
-        private TmdbMovie findMovieEntry(TmdbMovie[] movies, string title, string date)
+        private TmdbMovie FindMovieEntry(TmdbMovie[] movies, string title, string date)
         {
             string noCaseTitle = title.ToLowerInvariant();
             Collection<TmdbMovie> selectedList = new Collection<TmdbMovie>();
@@ -518,7 +499,7 @@ namespace Lookups
                     }
                     else
                     {
-                        if (checkYear(movie.ReleaseDate.Year, date))
+                        if (CheckYear(movie.ReleaseDate.Year, date))
                         {
                             if (movie.Title.ToLowerInvariant() == noCaseTitle)
                                 return (movie);
@@ -531,7 +512,7 @@ namespace Lookups
 
             if (selectedList.Count == 0)
                 return (null);
-                
+
             switch (RunParameters.Instance.LookupMatching)
             {
                 case MatchMethod.Exact:
@@ -565,12 +546,12 @@ namespace Lookups
 
                 case MatchMethod.Nearest:
 
-                    Collection<string> titleList = new Collection<string>();                    
-                    
+                    Collection<string> titleList = new Collection<string>();
+
                     foreach (TmdbMovie movie in selectedList)
                     {
                         titleList.Add(movie.Title);
-                        
+
                         if (TraceEntry.IsDefined(TraceName.Lookups))
                             Logger.Instance.Write("Added to match list " + movie.Title + " from " + movie.ReleaseDate.Year);
                     }
@@ -592,34 +573,44 @@ namespace Lookups
                     }
                 default:
                     return (null);
-            }            
+            }
         }
 
-        private bool checkYear(int movieYear, string yearString)
+        private bool CheckYear(string movieYearStr, string yearStr)
         {
-            if (yearString == null)
-                return (true);
+            if (movieYearStr == null)
+                return false;
 
-            try
+            if (int.TryParse(movieYearStr, out int year))
             {
-                int year = Int32.Parse(yearString);
+                return CheckYear(year, yearStr);
+            }
 
+            return false;
+        }
+
+        private bool CheckYear(int movieYear, string yearStr)
+        {
+            if (yearStr == null)
+                return true;
+
+            if (int.TryParse(yearStr, out int year))
+            {
                 return (movieYear >= year - 1 && movieYear <= year + 1);
             }
-            catch (FormatException) { return (false); }
-            catch (OverflowException) { return(false); }
+
+            return false;
         }
 
-        private MovieEntry createMovieEntry(string title, TmdbMovie movie, string originalTitle)
+        private MovieEntry CreateMovieEntry(string title, TmdbMovie movie, string originalTitle)
         {
-            MovieEntry movieEntry = null;
             string posterPath = null;
-            
+
             try
             {
                 movie.LoadAllData(apiInstance);
 
-                movieEntry = new MovieEntry(title, movie.Title);
+                var movieEntry = new MovieEntry(title, movie.Title);
                 movieEntry.OriginalTitle = originalTitle;
                 movieEntry.Overview = movie.Overview;
                 movieEntry.Cast = movie.Cast.CastNames;
@@ -634,21 +625,23 @@ namespace Lookups
                 movieEntry.ReleaseDate = movie.ReleaseDate.Year.ToString();
 
                 if (RunParameters.Instance.DownloadMovieThumbnail != LookupImageType.None)
-                {                    
+                {
                     string imageDirectory = (RunParameters.Instance.LookupImagesInBase ?
                         RunParameters.ImagePath :
                         Path.Combine(RunParameters.ImagePath, "Movies"));
-                    if (!Directory.Exists(imageDirectory))
+
+                    if (Directory.Exists(imageDirectory) == false)
+                    {
                         Directory.CreateDirectory(imageDirectory);
+                    }
 
                     Guid imageGuid = Guid.NewGuid();
 
                     posterPath = (RunParameters.Instance.LookupImageNameTitle ?
                         Path.Combine(imageDirectory, RunParameters.GetLegalFileName(title, ' ') + ".jpg") :
                         Path.Combine(imageDirectory, imageGuid + ".jpg"));
-                    
-                    bool imageLoaded = movie.GetPosterImage(apiInstance, posterPath);
 
+                    bool imageLoaded = movie.GetPosterImage(apiInstance, posterPath);
                     if (imageLoaded)
                     {
                         movieEntry.Poster = imageGuid;
@@ -660,22 +653,24 @@ namespace Lookups
                 webExceptionCount = 0;
                 movies.Add(movieEntry);
 
-                return (movieEntry);
+                return movieEntry;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Instance.Write("<e> Movie lookup has encountered an exception of type " + e.GetType().Name + 
+                Logger.Instance.Write("<e> Movie lookup has encountered an exception of type " + ex.GetType().Name +
                     " when loading a poster image for '" + title + "'");
-                Logger.Instance.Write("<e> " + e.Message);
+                Logger.Instance.Write("<e> " + ex.Message);
 
                 if (DebugEntry.IsDefined(DebugName.LogResponseKeys) && apiInstance.ResponseKeys != null)
                 {
                     foreach (DictionaryEntry dictionaryEntry in apiInstance.ResponseKeys)
+                    {
                         Logger.Instance.Write("Response key: " + dictionaryEntry.Key + " value: " + dictionaryEntry.Value);
+                    }
                 }
 
                 if (DebugEntry.IsDefined(DebugName.StackTrace))
-                    Logger.Instance.Write("<e> " + e.StackTrace);
+                    Logger.Instance.Write("<e> " + ex.StackTrace);
 
                 webErrors++;
                 webExceptionCount++;
@@ -684,13 +679,14 @@ namespace Lookups
                     webException = true;
 
                 if (posterPath != null && File.Exists(posterPath))
+                {
                     File.Delete(posterPath);
-
-                return (null);
+                }
+                return null;
             }
         }
 
-        private void processMovie(EPGEntry epgEntry, MovieEntry movieEntry)
+        private void ProcessMovie(EPGEntry epgEntry, MovieEntry movieEntry)
         {
             epgEntry.MetaDataTitle = movieEntry.MetaDataTitle;
 
@@ -708,9 +704,7 @@ namespace Lookups
             if (movieEntry.StarRating != null)
                 epgEntry.StarRating = movieEntry.StarRating;
 
-            /*if (epgEntry.EventCategory == null && movieEntry.Genre != null)
-                epgEntry.EventCategory = "Movie," + movieEntry.Genre + ",isMovie";*/
-            createEventCategory(epgEntry, movieEntry);
+            CreateEventCategory(epgEntry, movieEntry);
 
             if (movieEntry.Poster != null)
                 epgEntry.Poster = movieEntry.Poster;
@@ -722,14 +716,14 @@ namespace Lookups
             movieEntry.DateLastUsed = DateTime.Now;
         }
 
-        private void createEventCategory(EPGEntry epgEntry, MovieEntry movieEntry)
+        private void CreateEventCategory(EPGEntry epgEntry, MovieEntry movieEntry)
         {
             if (string.IsNullOrWhiteSpace(movieEntry.Genre))
                 return;
             if (!RunParameters.Instance.LookupIgnoreCategories && epgEntry.EventCategory != null)
                 return;
 
-            epgEntry.EventCategory = new EventCategorySpec("Movies," + movieEntry.Genre + ",isMovie");            
+            epgEntry.EventCategory = new EventCategorySpec("Movies," + movieEntry.Genre + ",isMovie");
         }
 
         internal void CreateMovieDatabase()
@@ -744,18 +738,17 @@ namespace Lookups
             settings.NewLineOnAttributes = false;
             settings.CloseOutput = true;
 
-            XmlWriter writer = null;
 
             int outputCount = 0;
             int outputNotFoundCount = 0;
             int entriesDeleted = 0;
             int postersDeleted = 0;
-            
-            Collection<MovieEntry> outputEntries = new Collection<MovieEntry>();
+
+            var outputEntries = new Collection<MovieEntry>();
 
             try
             {
-                writer = XmlWriter.Create(fileStream, settings);
+                XmlWriter writer = XmlWriter.Create(fileStream, settings);
 
                 writer.WriteStartElement("movies");
 
@@ -763,7 +756,7 @@ namespace Lookups
                 {
                     if (movieEntry.UsedThisTime || (movieEntry.DateLastUsed != null && movieEntry.DateLastUsed.Value.AddDays(10) > DateTime.Now))
                     {
-                        outputEntries.Add(movieEntry);                        
+                        outputEntries.Add(movieEntry);
                         movieEntry.Unload(writer);
 
                         outputCount++;
@@ -783,10 +776,10 @@ namespace Lookups
                                 File.Delete(posterPath);
                                 postersDeleted++;
                             }
-                            catch (IOException e)
+                            catch (IOException ex)
                             {
                                 Logger.Instance.Write("<e>Failed to delete movie poster " + posterPath);
-                                Logger.Instance.Write("<e> " + e.Message);
+                                Logger.Instance.Write("<e> " + ex.Message);
 
                                 posterPath = RunParameters.ImagePath;
 
@@ -795,10 +788,10 @@ namespace Lookups
                                     File.Delete(posterPath);
                                     postersDeleted++;
                                 }
-                                catch (IOException ex)
+                                catch (IOException inner)
                                 {
                                     Logger.Instance.Write("<e>Failed to delete movie poster " + posterPath);
-                                    Logger.Instance.Write("<e> " + ex.Message);
+                                    Logger.Instance.Write("<e> " + inner.Message);
                                 }
                             }
                         }
@@ -809,16 +802,16 @@ namespace Lookups
 
                 writer.Close();
             }
-            catch (XmlException e)
+            catch (XmlException ex)
             {
                 Logger.Instance.Write("Failed to unload Movie database");
-                Logger.Instance.Write("Data exception: " + e.Message);
+                Logger.Instance.Write("Data exception: " + ex.Message);
                 throw;
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to unload Movie database");
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
                 throw;
             }
 
@@ -828,22 +821,23 @@ namespace Lookups
             Logger.Instance.Write("Deleted " + postersDeleted + " movie posters no longer in use");
 
             if (!RunParameters.Instance.LookupImagesInBase)
-                cleanPosterDirectory(Path.Combine(RunParameters.ImagePath, "Movies"), outputEntries);
+                CleanPosterDirectory(Path.Combine(RunParameters.ImagePath, "Movies"), outputEntries);
             else
-                UnusedPosters = collectUnusedPosters(RunParameters.ImagePath, outputEntries);    
+                UnusedPosters = CollectUnusedPosters(RunParameters.ImagePath, outputEntries);
 
             Logger.Instance.Write("Referenced movie posters = " + referencedPosters);
             Logger.Instance.Write("Unreferenced movie posters deleted = " + unmatchedDeleted);
-            Logger.Instance.Write("Unreferenced movie posters not deleted = " + unmatchedNotDeleted);            
+            Logger.Instance.Write("Unreferenced movie posters not deleted = " + unmatchedNotDeleted);
         }
 
-        private void cleanPosterDirectory(string posterDirectory, Collection<MovieEntry> outputEntries)
+        private void CleanPosterDirectory(string posterDirectory, Collection<MovieEntry> outputEntries)
         {
-            if (!Directory.Exists(posterDirectory))
+            if (Directory.Exists(posterDirectory) == false)
+            {
                 return;
+            }
 
-            string[] posterFiles = Directory.GetFiles(posterDirectory, "*.jpg", SearchOption.TopDirectoryOnly);
-
+            var posterFiles = Directory.GetFiles(posterDirectory, "*.jpg", SearchOption.TopDirectoryOnly);
             foreach (string posterName in posterFiles)
             {
                 bool found = false;
@@ -897,22 +891,22 @@ namespace Lookups
             }
         }
 
-        private Collection<string> collectUnusedPosters(string posterDirectory, Collection<MovieEntry> outputEntries)
+        private Collection<string> CollectUnusedPosters(string posterDirectory, Collection<MovieEntry> outputEntries)
         {
             Collection<string> unusedPosters = new Collection<string>();
 
             if (!Directory.Exists(posterDirectory))
                 return (unusedPosters);
 
-            string[] posterFiles = Directory.GetFiles(posterDirectory, "*.jpg", SearchOption.TopDirectoryOnly);
+            var posterFiles = Directory.GetFiles(posterDirectory, "*.jpg", SearchOption.TopDirectoryOnly);
 
             foreach (string posterName in posterFiles)
             {
                 bool found = false;
 
-                FileInfo fileInfo = new FileInfo(posterName);
+                var fileInfo = new FileInfo(posterName);
 
-                foreach (MovieEntry seriesEntry in outputEntries)
+                foreach (var seriesEntry in outputEntries)
                 {
                     if (seriesEntry.Poster != null && seriesEntry.Poster.HasValue)
                     {
@@ -979,7 +973,7 @@ namespace Lookups
         {
             internal string Title { get; set; }
             internal string MetaDataTitle { get; set; }
-            internal string Overview { get; set; } 
+            internal string Overview { get; set; }
             internal Collection<string> Cast { get; set; }
             internal Collection<string> Directors { get; set; }
             internal Collection<string> Producers { get; set; }
@@ -994,9 +988,9 @@ namespace Lookups
 
             internal string OriginalTitle { get; set; }
 
-            internal bool Found { get { return(Status != "notfound"); } }
+            internal bool Found { get { return (Status != "notfound"); } }
 
-            private MovieEntry() 
+            private MovieEntry()
             {
                 Status = "found";
                 DateLastUsed = DateTime.Now.AddDays(-1);
@@ -1072,7 +1066,7 @@ namespace Lookups
 
                 xmlWriter.WriteAttributeString("title", Title);
                 xmlWriter.WriteAttributeString("metaDataTitle", MetaDataTitle);
-                xmlWriter.WriteAttributeString("status", Status);                
+                xmlWriter.WriteAttributeString("status", Status);
 
                 if (Overview != null)
                     xmlWriter.WriteElementString("overview", Overview);
@@ -1081,7 +1075,9 @@ namespace Lookups
                 {
                     xmlWriter.WriteStartElement("cast");
                     foreach (string actor in Cast)
+                    {
                         xmlWriter.WriteElementString("actor", actor);
+                    }
                     xmlWriter.WriteEndElement();
                 }
 
@@ -1089,7 +1085,9 @@ namespace Lookups
                 {
                     xmlWriter.WriteStartElement("producers");
                     foreach (string producer in Producers)
+                    {
                         xmlWriter.WriteElementString("producer", producer);
+                    }
                     xmlWriter.WriteEndElement();
                 }
 
@@ -1097,7 +1095,9 @@ namespace Lookups
                 {
                     xmlWriter.WriteStartElement("directors");
                     foreach (string director in Directors)
+                    {
                         xmlWriter.WriteElementString("director", director);
+                    }
                     xmlWriter.WriteEndElement();
                 }
 
@@ -1105,7 +1105,9 @@ namespace Lookups
                 {
                     xmlWriter.WriteStartElement("writers");
                     foreach (string writer in Writers)
+                    {
                         xmlWriter.WriteElementString("writer", writer);
+                    }
                     xmlWriter.WriteEndElement();
                 }
 
@@ -1126,18 +1128,19 @@ namespace Lookups
 
                 if (!string.IsNullOrWhiteSpace(OriginalTitle) && OriginalTitle != Title)
                     xmlWriter.WriteElementString("originalTitle", OriginalTitle);
-                
+
                 xmlWriter.WriteEndElement();
             }
 
             internal static MovieEntry CreateNotFoundEntry(string title)
             {
-                MovieEntry movie = new MovieEntry(title, string.Empty);
+                var result = new MovieEntry(title, string.Empty)
+                {
+                    Status = "notfound",
+                    UsedThisTime = true
+                };
 
-                movie.Status = "notfound";
-                movie.UsedThisTime = true;
-
-                return (movie);
+                return result;
             }
 
             public override string ToString()

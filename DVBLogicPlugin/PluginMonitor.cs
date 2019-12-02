@@ -25,16 +25,22 @@ using System.Threading;
 using System.Xml;
 using System.IO;
 using System.Diagnostics;
-
 using DomainObjects;
 
 namespace DVBLogicPlugin
 {
     internal class PluginMonitor
     {
-        internal int MonitorIdentity { get { return (monitorIdentity); } }
+        internal int MonitorIdentity { get; }
 
-        private enum status
+        private readonly string _directory;
+        private State _pluginStatus = State.unknown;
+        private string _frequency;
+        private Process _collectionProcess;
+        private string _runReference;
+        private Mutex _cancelMutex;
+
+        private enum State
         {
             unknown = 0,
             inProgress,
@@ -43,23 +49,11 @@ namespace DVBLogicPlugin
             finishAborted
         };
 
-        private int monitorIdentity;
-
-        private string directory;
-        private status pluginStatus = status.unknown;
-
-        private string frequency;
-        private Process collectionProcess;
-        private string runReference;
-
-        private Mutex cancelMutex;
-
         internal PluginMonitor(int monitorIdentity, string directory)
         {
-            this.monitorIdentity = monitorIdentity;
-            this.directory = directory;
-
-            pluginStatus = status.inProgress;            
+            MonitorIdentity = monitorIdentity;
+            _directory = directory;
+            _pluginStatus = State.inProgress;            
         }
 
         internal bool StartScan(IntPtr scanInfo)
@@ -95,7 +89,7 @@ namespace DVBLogicPlugin
                         switch (reader.Name)
                         {
                             case "frequency":
-                                frequency = reader.ReadString();
+                                _frequency = reader.ReadString();
                                 break;
                             default:
                                 break;
@@ -118,77 +112,77 @@ namespace DVBLogicPlugin
 
             reader.Close();
 
-            string actualFileName = Path.Combine(directory, frequency.ToString()) + ".ini";
+            string actualFileName = Path.Combine(_directory, _frequency.ToString()) + ".ini";
             Logger.Instance.Write("Running collection with parameters from " + actualFileName);
 
             if (!File.Exists(actualFileName))
             {
                 Logger.Instance.Write("<e> The collection parameters do not exist - collection will be abandoned");
-                pluginStatus = status.finishedError;
+                _pluginStatus = State.finishedError;
                 return (false);
             }
 
-            runReference = Process.GetCurrentProcess().Id + "-" + monitorIdentity;
+            _runReference = Process.GetCurrentProcess().Id + "-" + MonitorIdentity;
 
-            string cancellationName = "EPG Collector Cancellation Mutex " + runReference;
+            string cancellationName = "EPG Collector Cancellation Mutex " + _runReference;
             Logger.Instance.Write("Cancellation mutex name is " + cancellationName);
-            cancelMutex = new Mutex(true, cancellationName); 
+            _cancelMutex = new Mutex(true, cancellationName); 
 
-            collectionProcess = new Process();
+            _collectionProcess = new Process();
 
-            collectionProcess.StartInfo.FileName = Path.Combine(RunParameters.BaseDirectory, "EPGCollector.exe");
-            collectionProcess.StartInfo.WorkingDirectory = RunParameters.BaseDirectory;
-            collectionProcess.StartInfo.Arguments = @"/ini=" + '"' + actualFileName + '"' + " /plugin=" + runReference;
-            collectionProcess.StartInfo.UseShellExecute = false;
-            collectionProcess.StartInfo.CreateNoWindow = true;
-            collectionProcess.EnableRaisingEvents = true;
-            collectionProcess.Exited += new EventHandler(collectionProcessExited);
+            _collectionProcess.StartInfo.FileName = Path.Combine(RunParameters.BaseDirectory, "EPGCollector.exe");
+            _collectionProcess.StartInfo.WorkingDirectory = RunParameters.BaseDirectory;
+            _collectionProcess.StartInfo.Arguments = @"/ini=" + '"' + actualFileName + '"' + " /plugin=" + _runReference;
+            _collectionProcess.StartInfo.UseShellExecute = false;
+            _collectionProcess.StartInfo.CreateNoWindow = true;
+            _collectionProcess.EnableRaisingEvents = true;
+            _collectionProcess.Exited += new EventHandler(collectionProcessExited);
 
-            collectionProcess.Start();
+            _collectionProcess.Start();
 
-            pluginStatus = status.inProgress;
+            _pluginStatus = State.inProgress;
 
             return (true);
         }
 
         private void collectionProcessExited(object sender, EventArgs e)
         {
-            int exitCode = collectionProcess.ExitCode;
+            int exitCode = _collectionProcess.ExitCode;
             Logger.Instance.Write("Plugin notified that collection has completed with code " + exitCode);
 
-            collectionProcess.Close();
-            collectionProcess = null;
+            _collectionProcess.Close();
+            _collectionProcess = null;
 
-            cancelMutex.Close();
-            cancelMutex = null;
+            _cancelMutex.Close();
+            _cancelMutex = null;
 
             if (exitCode == 0)
-                pluginStatus = status.finishSuccess;
+                _pluginStatus = State.finishSuccess;
             else
-                pluginStatus = status.finishedError;
+                _pluginStatus = State.finishedError;
         }
 
         internal bool StopScan()
         {
-            if (cancelMutex != null)
+            if (_cancelMutex != null)
             {
                 Logger.Instance.Write("Plugin is releasing cancellation mutex");
-                cancelMutex.ReleaseMutex();
+                _cancelMutex.ReleaseMutex();
             }
             
-            pluginStatus = status.finishAborted;
+            _pluginStatus = State.finishAborted;
 
             return (true);
         }
 
         internal int GetScanStatus()
         {
-            return ((int)pluginStatus);
+            return ((int)_pluginStatus);
         }
 
         internal int GetEPGData(IntPtr buffer, int bufferSize)
         {
-            string fileName = Path.Combine(directory, "EPG Collector Plugin.xml");
+            string fileName = Path.Combine(_directory, "EPG Collector Plugin.xml");
             FileInfo fileInfo = new FileInfo(fileName);
             int fileLength = 0;
             if (fileInfo.Exists)

@@ -94,9 +94,9 @@ namespace DirectShow
         {
             this.tunerFilter = tunerFilter;
 
-            diseqCommandPropertySet = checkDiseqCommandSupported(tunerFilter);
+            diseqCommandPropertySet = CheckDiseqCommandSupported(tunerFilter);
             if (diseqCommandPropertySet == null)
-                frequencyFilter = checkPutRangeSupported(tunerFilter);
+                frequencyFilter = CheckPutRangeSupported(tunerFilter);
             
             cardCapable = diseqCommandPropertySet != null || frequencyFilter != null;
 
@@ -105,50 +105,46 @@ namespace DirectShow
             instanceBuffer = Marshal.AllocCoTaskMem(instanceSize);
         }
 
-        private IKsPropertySet checkDiseqCommandSupported(IBaseFilter filter)
+        private IKsPropertySet CheckDiseqCommandSupported(IBaseFilter filter)
         {
             IPin pin = DsFindPin.ByDirection(filter, PinDirection.Input, 0);
             if (pin == null)
-                return (null);
-
+            {
+                return null;
+            }
             IKsPropertySet propertySet = pin as IKsPropertySet;
             if (propertySet == null)
             {
-                Marshal.ReleaseComObject(pin);
-                return (null);
+                return null;
             }
 
-            KSPropertySupport support;
-            reply = propertySet.QuerySupported(typeof(IBDA_DiseqCommand).GUID, (int)bdaDiseqcProperty.LnbSource, out support);
+            reply = propertySet.QuerySupported(typeof(IBDA_DiseqCommand).GUID, (int)bdaDiseqcProperty.LnbSource, out KSPropertySupport support);
             if (reply != 0 || (support & KSPropertySupport.Set) == 0)
             {
-                Marshal.ReleaseComObject(pin);
-                return (null);
+                return null;
             }
 
             Logger.Instance.Write("Generic DiSEqC Handler: Using property set commands");
 
-            return (propertySet);
+            return propertySet;
         }
 
-        private IBDA_FrequencyFilter checkPutRangeSupported(IBaseFilter filter)
+        private IBDA_FrequencyFilter CheckPutRangeSupported(IBaseFilter filter)
         {
             IBDA_Topology topology = filter as IBDA_Topology;
             if (topology == null)
-                return (null);
+            {
+                return null;
+            }
 
-            object controlNode;
-            reply = topology.GetControlNode(0, 1, 0, out controlNode);
+            reply = topology.GetControlNode(0, 1, 0, out object controlNode);
             if (reply == 0 && controlNode is IBDA_FrequencyFilter)
             {
                 Logger.Instance.Write("Generic DiSEqC Handler: Using Set Range method");
                 return (controlNode as IBDA_FrequencyFilter);
             }
             
-            if (controlNode != null)
-                Marshal.ReleaseComObject(controlNode);
-
-            return (null);
+            return null;
         }
 
         /// <summary>
@@ -165,12 +161,12 @@ namespace DirectShow
 
             int lnbNumber = GetLnbNumber(port);
             if (lnbNumber != -1)
-                return (processPort(lnbNumber, tuningSpec, diseqcRunParameters));
+                return ProcessPort(lnbNumber, tuningSpec, diseqcRunParameters);
             else
-                return (processCommands(port, diseqcRunParameters));
+                return ProcessCommands(port, diseqcRunParameters);
         }
 
-        private bool processPort(int lnbNumber, TuningSpec tuningSpec, DiseqcRunParameters diseqcRunParameters)
+        private bool ProcessPort(int lnbNumber, TuningSpec tuningSpec, DiseqcRunParameters diseqcRunParameters)
         {
             if (diseqCommandPropertySet == null && lnbNumber > 4)
             {
@@ -328,7 +324,7 @@ namespace DirectShow
             return (true);
         }
 
-        private bool processCommands(string commands, DiseqcRunParameters diseqcRunParameters)
+        private bool ProcessCommands(string commands, DiseqcRunParameters diseqcRunParameters)
         {
             if (diseqCommandPropertySet == null)
                 return (false);

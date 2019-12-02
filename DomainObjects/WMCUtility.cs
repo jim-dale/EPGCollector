@@ -40,57 +40,37 @@ namespace DomainObjects
         /// <returns></returns>
         public static string Run(string description, string arguments)
         {
+            string result = null;
+
             Logger.Instance.Write("Running Windows Media Centre Utility to " + description);
-
-
-            if (Environment.OSVersion.Version.Major < 6)
-                return ("Windows Media Centre Utility cannot run on this version of Windows (" + Environment.OSVersion + ")");
-
-            FileVersionInfo fileVersionInfo;
 
             try
             {
-                fileVersionInfo = FileVersionInfo.GetVersionInfo(Path.Combine(Environment.GetEnvironmentVariable("windir"), Path.Combine("ehome", "mcepg.dll")));
-                if (fileVersionInfo == null)
-                    return ("Windows Media Centre Utility cannot run because the file mcepg.dll has no file version number");
-
-                Logger.Instance.Write("The file version number for mcepg.dll is " + fileVersionInfo.FileVersion);
-            }
-            catch (FileNotFoundException)
-            {
-                return ("Windows Media Centre Utility cannot run - can't find Windows Media Centre file mcepg.dll");
-            }
-
-            using (var process = new Process())
-            {
-                process.StartInfo.FileName = AppName;
-                process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.EnableRaisingEvents = true;
-                if (arguments != null)
+                using (var process = new Process())
                 {
+                    process.StartInfo.FileName = AppName;
                     process.StartInfo.Arguments = arguments;
-                }
-                process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        Logger.Instance.Write(e.Data);
-                    }
-                });
-                process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        Logger.Instance.Write(e.Data);
-                    }
-                });
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.ErrorDialog = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
 
-                try
-                {
+                    process.OutputDataReceived += new DataReceivedEventHandler((sender, eventArgs) =>
+                    {
+                        if (eventArgs.Data != null)
+                        {
+                            Logger.Instance.Write(eventArgs.Data);
+                        }
+                    });
+                    process.ErrorDataReceived += new DataReceivedEventHandler((sender, eventArgs) =>
+                    {
+                        if (eventArgs.Data != null)
+                        {
+                            Logger.Instance.Write(eventArgs.Data);
+                        }
+                    });
+
                     process.Start();
 
                     process.BeginOutputReadLine();
@@ -99,19 +79,21 @@ namespace DomainObjects
                     process.WaitForExit();
 
                     Logger.Instance.Write("Windows Media Centre Utility has completed: exit code " + process.ExitCode);
-                    if (process.ExitCode == 0)
-                        return null;
-                    else
-                        return "Windows Media Centre failed: reply code " + process.ExitCode;
-                }
-                catch (Exception e)
-                {
-                    Logger.Instance.Write("<e> Failed to run the Windows Media Centre Utility");
-                    Logger.Instance.Write("<e> " + e.Message);
-
-                    return "Failed to run Windows Media Centre Utility due to an exception";
+                    if (process.ExitCode != 0)
+                    {
+                        result = "Windows Media Centre failed: reply code " + process.ExitCode;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Instance.Write("<e> Failed to run the Windows Media Centre Utility");
+                Logger.Instance.Write("<e> " + ex.Message);
+
+                result = "Failed to run Windows Media Centre Utility due to an exception";
+            }
+
+            return result;
         }
     }
 }

@@ -41,7 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BDAGraph1.cs" />
+    <Compile Include="BDAGraph.cs" />
     <Compile Include="TSStreamReaderEx.cs" />
     <Compile Include="DirectShowAPI\APIBase.cs" />
     <Compile Include="DirectShowAPI\Interfaces.cs" />

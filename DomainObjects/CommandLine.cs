@@ -203,8 +203,8 @@ namespace DomainObjects
             {
                 case ExitCode.OK:
                     return ("The run completed successfully.");
-                case ExitCode.NoDVBTuners:
-                    return ("No DVB tuners installed.");
+                case ExitCode.NoTuners:
+                    return ("No tuners installed.");
                 case ExitCode.ParameterFileNotFound:
                     return ("The initialization file cannot be located.");
                 case ExitCode.ParameterError:
@@ -251,7 +251,7 @@ namespace DomainObjects
             {
                 case ExitCode.OK:
                     return ("OK");
-                case ExitCode.NoDVBTuners:
+                case ExitCode.NoTuners:
                     return ("No tuners installed");
                 case ExitCode.ParameterFileNotFound:
                     return ("Ini file not found");

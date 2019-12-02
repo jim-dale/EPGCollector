@@ -123,16 +123,18 @@ namespace DVBServices
         /// </remarks>
         public static bool Process(string fileName)
         {
-            FileStream fileStream = null;
-
             string actualName = Path.Combine(RunParameters.ConfigDirectory, fileName);
             Logger.Instance.Write("Loading MHEG5 Parser Parameters from " + actualName);
 
-            try { fileStream = new FileStream(actualName, FileMode.Open, FileAccess.Read); }
+            FileStream fileStream = null;
+            try
+            {
+                fileStream = new FileStream(actualName, FileMode.Open, FileAccess.Read);
+            }
             catch (IOException)
             {
                 Logger.Instance.Write("Failed to open " + actualName + " - assuming default MHEG parser format");
-                return (true);
+                return true;
             }
 
             StreamReader streamReader = new StreamReader(fileStream);
@@ -148,11 +150,11 @@ namespace DVBServices
                     {
                         case "Fields":
                             Logger.Instance.Write("Processing MHEG parser format parameter: " + line);
-                            processFields(parts[1]);
+                            ProcessFields(parts[1]);
                             break;
                         case "Field":
                             Logger.Instance.Write("Processing MHEG parser format parameter: " + line);
-                            processField(parts[1]);
+                            ProcessField(parts[1]);
                             break;
                         default:
                             break;
@@ -163,7 +165,7 @@ namespace DVBServices
             return (true);
         }
 
-        private static bool processFields(string parts)
+        private static bool ProcessFields(string parts)
         {
             string[] parameters = parts.Split(new char[] { ',' });
             if (parameters.Length != 2)
@@ -191,7 +193,7 @@ namespace DVBServices
             return (true);
         }
 
-        private static bool processField(string parts)
+        private static bool ProcessField(string parts)
         {
             string[] parameters = parts.Split(new char[] { ',' });
             if (parameters.Length != 2)

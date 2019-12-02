@@ -42,8 +42,11 @@ namespace DomainObjects
             get
             {
                 if (tunerCollection == null)
+                {
                     tunerCollection = new ObservableCollection<Tuner>();
-                return (tunerCollection);
+                }
+
+                return tunerCollection;
             }
             set { tunerCollection = value; }
         }
@@ -51,14 +54,14 @@ namespace DomainObjects
         /// <summary>
         /// Return true if there is at least one tuner installed; false otherwise.
         /// </summary>
-        public static bool TunerPresent { get { return (tunerCollection.Count > 0); } }
+        public static bool TunerPresent { get { return tunerCollection.Count > 0; } }
 
         private static ObservableCollection<Tuner> tunerCollection;
 
         /// <summary>
         /// Get the Windows path for the tuner.
         /// </summary>
-        public string Path { get { return(path); } }
+        public string Path { get { return path; } }
 
         /// <summary>
         /// Get the name of the tuner.
@@ -68,9 +71,9 @@ namespace DomainObjects
             get 
             {
                 if (name != null)
-                    return (name);
+                    return name;
                 else
-                    return (string.Empty);
+                    return string.Empty;
             }
             set { name = value; }
         }
@@ -84,7 +87,7 @@ namespace DomainObjects
             {
                 if (tunerNodes == null)
                     tunerNodes = new Collection<TunerNode>();
-                return (tunerNodes); 
+                return tunerNodes; 
             }
             set { tunerNodes = value; }
         }
@@ -92,31 +95,23 @@ namespace DomainObjects
         /// <summary>
         /// Get or set the frequency being used by the tuner.
         /// </summary>
-        public int Frequency
-        {
-            get { return (frequency); }
-            set { frequency = value; }
-        }
+        public int Frequency { get; set; } = -1;
 
         /// <summary>
         /// Get or set the tuner tag.
         /// </summary>
-        public object Tag
-        {
-            get { return (tag); }
-            set { tag = value; }
-        }
+        public object Tag { get; set; }
 
         /// <summary>
         /// Return true if the tuner is in use; false otherwise.
         /// </summary>
         public bool InUse 
         { 
-            get { return (frequency != -1); }
+            get { return (Frequency != -1); }
             set
             {
                 if (!value)
-                    frequency = -1;
+                    Frequency = -1;
             }
         }
 
@@ -274,7 +269,7 @@ namespace DomainObjects
         {
             get
             {
-                foreach (Tuner tuner in TunerCollection)
+                foreach (var tuner in TunerCollection)
                 {
                     if (tuner.DVBSatelliteNode != null)
                         return (tuner);
@@ -406,10 +401,6 @@ namespace DomainObjects
         private string path;
         private string name;
         private Collection<TunerNode> tunerNodes;
-        private int frequency = -1;
-
-        private object tag;
-
         private static Tuner currentTuner;
 
         private Tuner() { }
@@ -428,48 +419,48 @@ namespace DomainObjects
         /// <summary>
         /// Check if the tuner has a particular tuner node type.
         /// </summary>
-        /// <param name="checkTunerNodeType">The tuner node type.</param>
+        /// <param name="value">The tuner node type.</param>
         /// <returns>True if the node type is supported; false otherwise.</returns>
-        public virtual bool Supports(TunerNodeType checkTunerNodeType)
+        public virtual bool Supports(TunerNodeType value)
         {
-            if (TunerNodes == null)
-                return (false);
-
-            foreach (TunerNode tunerNode in TunerNodes)
+            if (TunerNodes != null)
             {
-                if (checkTunerNodeType == tunerNode.TunerNodeType)
-                    return (true);
+                foreach (var tunerNode in TunerNodes)
+                {
+                    if (value == tunerNode.TunerNodeType)
+                        return true;
+                }
             }
 
-            return (false);            
+            return false;            
         }
 
         /// <summary>
         /// Check if the tuner is a particular tuner type.
         /// </summary>
-        /// <param name="checkTunerType">The tuner type.</param>
+        /// <param name="value">The tuner type.</param>
         /// <returns>True if the tuner type is supported; false otherwise.</returns>
-        public virtual bool Supports(TunerType checkTunerType)
+        public virtual bool Supports(TunerType value)
         {
-            switch (checkTunerType)
+            switch (value)
             {
                 case TunerType.Satellite:
-                    return (Supports(TunerNodeType.Satellite));
+                    return Supports(TunerNodeType.Satellite);
                 case TunerType.Terrestrial:
-                    return (Supports(TunerNodeType.Terrestrial));
+                    return Supports(TunerNodeType.Terrestrial);
                 case TunerType.Cable:
-                    return (Supports(TunerNodeType.Cable));
+                    return Supports(TunerNodeType.Cable);
                 case TunerType.ATSC:
                 case TunerType.ATSCCable:
-                    return (Supports(TunerNodeType.ATSC));
+                    return Supports(TunerNodeType.ATSC);
                 case TunerType.ClearQAM:
-                    return (Supports(TunerNodeType.Cable));
+                    return Supports(TunerNodeType.Cable);
                 case TunerType.ISDBS:
-                    return (Supports(TunerNodeType.ISDBS));
+                    return Supports(TunerNodeType.ISDBS);
                 case TunerType.ISDBT:
-                    return (Supports(TunerNodeType.ISDBT));
+                    return Supports(TunerNodeType.ISDBT);
                 default:
-                    return (Supports(TunerNodeType.Satellite));
+                    return Supports(TunerNodeType.Satellite);
             }
 
         }
@@ -477,20 +468,22 @@ namespace DomainObjects
         /// <summary>
         /// Get a specific tuner node.
         /// </summary>
-        /// <param name="checkTunerNodeType">The tuner node type requested.</param>
+        /// <param name="value">The tuner node type requested.</param>
         /// <returns>The tuner node of the specified type or null if not supported.</returns>
-        public TunerNode GetNode(TunerNodeType checkTunerNodeType)
+        public TunerNode GetNode(TunerNodeType value)
         {
-            if (TunerNodes == null)
-                return (null);
-
-            foreach (TunerNode tunerNode in TunerNodes)
+            if (TunerNodes != null)
             {
-                if (checkTunerNodeType == tunerNode.TunerNodeType)
-                return (tunerNode);
+                foreach (TunerNode tunerNode in TunerNodes)
+                {
+                    if (value == tunerNode.TunerNodeType)
+                    {
+                        return tunerNode;
+                    }
+                }
             }
 
-            return (null);
+            return null;
         }
 
         /// <summary>
@@ -500,21 +493,22 @@ namespace DomainObjects
         public override string ToString()
         {
             if (TunerNodes == null || TunerNodes.Count == 0)
-                return (name + " (No tuner node type available)");
+                return name + " (No tuner node type available)";
 
-            StringBuilder stringBuilder = new StringBuilder();
+            var builder = new StringBuilder();
 
-            foreach (TunerNode tunerNode in TunerNodes)
+            foreach (var tunerNode in TunerNodes)
             {
                 if (tunerNode.TunerNodeType != TunerNodeType.Other)
                 {
-                    if (stringBuilder.Length != 0)
-                        stringBuilder.Append(", ");
-                    stringBuilder.Append(tunerNode.TunerNodeType.ToString());
+                    if (builder.Length != 0)
+                        builder.Append(", ");
+
+                    builder.Append(tunerNode.TunerNodeType.ToString());
                 }
             }
 
-            return (name + " (" + stringBuilder + ")");
+            return name + " (" + builder + ")";
         }
     }
 }

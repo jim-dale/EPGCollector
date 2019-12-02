@@ -34,7 +34,7 @@ using DomainObjects;
 namespace DirectShow
 {
     /// <summary>
-    /// The class the supports a BDA DirectShow graph.
+    /// The class the supports a BDA DirectShow graph
     /// </summary>
     public class BDAGraph : DirectShowGraph, ITunerDataProvider, ISampleDataProvider
     {
@@ -48,8 +48,7 @@ namespace DirectShow
         /// <param name="dumpFileName">The name of the dump file or null.</param>
         /// <param name="bufferSize">The size of the data buffer.</param>
         /// <returns>Zero if successful; a COM error code otherwise.</returns>
-        [DllImport("PSIMemoryShare.dll", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl),
-            SuppressUnmanagedCodeSecurity]
+        [DllImport("PSIMemoryShare.dll", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl), SuppressUnmanagedCodeSecurity]
         public static extern int CreatePSIMemoryFilter(IGraphBuilder graphBuilder,
             bool logging,
             [MarshalAs(UnmanagedType.LPStr)]string logFileName,
@@ -57,65 +56,45 @@ namespace DirectShow
             [MarshalAs(UnmanagedType.LPStr)]string dumpFileName,
             int bufferSize);
 
-        /// <summary>
-        /// The PID of the Program Association table.
-        /// </summary>
+        /// <summary>The PID of the Program Association table</summary>
         public const short PatPid = 0x00;
-        /// <summary>
-        /// The PID of the Network Information table.
-        /// </summary>
+        /// <summary>The PID of the Network Information table</summary>
         public const short NitPid = 0x10;
-        /// <summary>
-        /// The PID of the Service Description table.
-        /// </summary>
+        /// <summary>The PID of the Service Description table</summary>
         public const short SdtPid = 0x11;
-        /// <summary>
-        /// The PID of the Event Information table.
-        /// </summary>
+        /// <summary>The PID of the Event Information table</summary>
         public const short EitPid = 0x12;
 
-        /// <summary>
-        /// The table number of the Program Association table.
-        /// </summary>
+        /// <summary>The table number of the Program Association table</summary>
         public const byte PatTable = 0x00;
-        /// <summary>
-        /// The table number of the Program Map table.
-        /// </summary>
+        /// <summary>The table number of the Program Map table</summary>
         public const byte PmtTable = 0x02;
-        /// <summary>
-        /// The table number of the Service Description table.
-        /// </summary>
+        /// <summary>The table number of the Service Description table</summary>
         public const byte SdtTable = 0x42;
-        /// <summary>
-        /// The table number of the Service Description table for the 'other' transport stream.
-        /// </summary>
+        /// <summary>The table number of the Service Description table for the 'other' transport stream</summary>
         public const byte SdtOtherTable = 0x46;
-        /// <summary>
-        /// The table number of the now/next table for the Event Information table for the 'current' transport stream.
-        /// </summary>
+        /// <summary>The table number of the now/next table for the Event Information table for the 'current' transport stream</summary>
         public const byte EitTable = 0x4e;
 
-        /// <summary>
-        /// Get the frequency the graph is currently tuned to.
-        /// </summary>
-        public TuningFrequency Frequency { get { return (tuningSpec.Frequency); } }
+        /// <summary>Get the frequency the graph is currently tuned to</summary>
+        public TuningFrequency Frequency { get { return tuningSpec.Frequency; } }
 
         /// <summary>
-        /// Get the current signal strength.
+        /// Get the current signal strength
         /// </summary>
         public int SignalStrength
         {
             get
             {
                 if (networkProviderFilter == null)
-                    return (0);
+                    return 0;
 
-                int signalStrength;
+                var tuner = (ITuner)networkProviderFilter;
 
-                int reply = ((ITuner)networkProviderFilter).get_SignalStrength(out signalStrength);
-                DsError.ThrowExceptionForHR(reply);
+                int hr = tuner.get_SignalStrength(out int signalStrength);
+                DsError.ThrowExceptionForHR(hr);
 
-                return (signalStrength);
+                return signalStrength;
             }
         }
 
@@ -127,31 +106,31 @@ namespace DirectShow
             get
             {
                 if (tunerFilter == null)
-                    return (0);
+                    return 0;
 
-                Collection<IBDA_SignalStatistics> signalStatisticsCollection = getSignalStatisticsInterfaces("signal quality");
-                if (signalStatisticsCollection != null)
+                var items = GetSignalStatisticsInterfaces("signal quality");
+                if (items != null)
                 {
-                    foreach (IBDA_SignalStatistics signalStatistics in signalStatisticsCollection)
+                    foreach (IBDA_SignalStatistics item in items)
                     {
-                        int signalQuality;
-                        reply = signalStatistics.get_SignalQuality(out signalQuality);
+                        reply = item.get_SignalQuality(out int signalQuality);
                         if (reply >= 0)
                         {
-                            releaseSignalStatisticsInterfaces(signalStatisticsCollection);
                             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                                Logger.Instance.Write("BDA Signal quality returned from signal stats interface " + (signalStatisticsCollection.IndexOf(signalStatistics) + 1));
-                            return (signalQuality);
+                            {
+                                Logger.Instance.Write("BDA Signal quality returned from signal stats interface " + (items.IndexOf(item) + 1));
+                            }
+                            return signalQuality;
                         }
                     }
-
-                    releaseSignalStatisticsInterfaces(signalStatisticsCollection);
                 }
 
                 if (TraceEntry.IsDefined(TraceName.BdaSigStats))
+                {
                     Logger.Instance.Write("BDA Signal quality not found on any signal stats interface - returning -1");
+                }
 
-                return (-1);
+                return -1;
             }
         }
 
@@ -163,35 +142,33 @@ namespace DirectShow
             get
             {
                 if (tunerFilter == null)
-                    return (false);
+                    return false;
 
-                Collection<IBDA_SignalStatistics> signalStatisticsCollection = getSignalStatisticsInterfaces("signal present");
-                if (signalStatisticsCollection != null)
+                var items = GetSignalStatisticsInterfaces("signal present");
+                if (items != null)
                 {
-                    foreach (IBDA_SignalStatistics signalStatistics in signalStatisticsCollection)
+                    foreach (IBDA_SignalStatistics item in items)
                     {
-                        bool signalPresent;
-                        reply = signalStatistics.get_SignalPresent(out signalPresent);
-                        Marshal.ReleaseComObject(signalStatistics);
+                        reply = item.get_SignalPresent(out bool signalPresent);
                         if (reply >= 0 && signalPresent)
                         {
                             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                                Logger.Instance.Write("BDA Signal present returned from signal stats interface " + (signalStatisticsCollection.IndexOf(signalStatistics) + 1));
-                            releaseSignalStatisticsInterfaces(signalStatisticsCollection);
-                            return (true);
+                                Logger.Instance.Write("BDA Signal present returned from signal stats interface " + (items.IndexOf(item) + 1));
+
+                            return true;
                         }
                     }
 
                     if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                         Logger.Instance.Write("BDA Signal not present on any signal stats interface - returning false");
-                    releaseSignalStatisticsInterfaces(signalStatisticsCollection);
-                    return (false);
+
+                    return false;
                 }
 
                 if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                     Logger.Instance.Write("BDA No signal stats interface available to determine signal present - returning false");
 
-                return (false);
+                return false;
             }
         }
 
@@ -203,34 +180,33 @@ namespace DirectShow
             get
             {
                 if (tunerFilter == null)
-                    return (false);
+                    return false;
 
-                Collection<IBDA_SignalStatistics> signalStatisticsCollection = getSignalStatisticsInterfaces("signal locked");
-                if (signalStatisticsCollection != null)
+                var items = GetSignalStatisticsInterfaces("signal locked");
+                if (items != null)
                 {
-                    foreach (IBDA_SignalStatistics signalStatistics in signalStatisticsCollection)
+                    foreach (IBDA_SignalStatistics item in items)
                     {
-                        bool signalLocked;
-                        reply = signalStatistics.get_SignalLocked(out signalLocked);
+                        reply = item.get_SignalLocked(out bool signalLocked);
                         if (reply >= 0 && signalLocked)
                         {
                             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                                Logger.Instance.Write("BDA Signal locked returned from signal stats interface " + (signalStatisticsCollection.IndexOf(signalStatistics) + 1));
-                            releaseSignalStatisticsInterfaces(signalStatisticsCollection);
-                            return (true);
+                                Logger.Instance.Write("BDA Signal locked returned from signal stats interface " + (items.IndexOf(item) + 1));
+
+                            return true;
                         }
                     }
 
                     if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                         Logger.Instance.Write("BDA Signal not locked on any signal stats interface - returning false");
-                    releaseSignalStatisticsInterfaces(signalStatisticsCollection);
-                    return (false);
+
+                    return false;
                 }
 
                 if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                     Logger.Instance.Write("BDA No signal stats interface available to determine signal lock - returning false");
 
-                return (false);
+                return false;
             }
         }
 
@@ -242,11 +218,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (false);
+                {
+                    return false;
+                }
 
-                bool isDataFlowing;
-                ((IMemSinkSettings)psiMemoryFilter).get_IsDataFlowing(out isDataFlowing);
-                return (isDataFlowing);
+                ((IMemSinkSettings)psiMemoryFilter).get_IsDataFlowing(out bool result);
+                return result;
             }
         }
 
@@ -258,11 +235,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (0);
+                {
+                    return 0;
+                }
 
-                int bufferUsed;
-                ((IMemSinkSettings)psiMemoryFilter).get_BufferUsed(out bufferUsed);
-                return (bufferUsed);
+                ((IMemSinkSettings)psiMemoryFilter).get_BufferUsed(out int result);
+                return result;
             }
         }
 
@@ -274,11 +252,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (0);
+                {
+                    return 0;
+                }
 
-                int syncByteSearches;
-                ((IMemSinkSettings)psiMemoryFilter).get_SyncByteSearchCount(out syncByteSearches);
-                return (syncByteSearches);
+                ((IMemSinkSettings)psiMemoryFilter).get_SyncByteSearchCount(out int result);
+                return result;
             }
         }
 
@@ -290,11 +269,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (0);
+                {
+                    return 0;
+                }
 
-                int samplesDropped;
-                ((IMemSinkSettings)psiMemoryFilter).get_SamplesDropped(out samplesDropped);
-                return (samplesDropped);
+                ((IMemSinkSettings)psiMemoryFilter).get_SamplesDropped(out int result);
+                return result;
             }
         }
 
@@ -306,11 +286,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (0);
+                {
+                    return 0;
+                }
 
-                int maximumSampleSize;
-                ((IMemSinkSettings)psiMemoryFilter).get_MaximumSampleSize(out maximumSampleSize);
-                return (maximumSampleSize);
+                ((IMemSinkSettings)psiMemoryFilter).get_MaximumSampleSize(out int result);
+                return result;
             }
         }
 
@@ -322,11 +303,12 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (0);
+                {
+                    return 0;
+                }
 
-                int dumpFileSize;
-                ((IMemSinkSettings)psiMemoryFilter).get_DumpFileSize(out dumpFileSize);
-                return (dumpFileSize);
+                ((IMemSinkSettings)psiMemoryFilter).get_DumpFileSize(out int result);
+                return result;
             }
         }
 
@@ -338,23 +320,24 @@ namespace DirectShow
             get
             {
                 if (psiMemoryFilter == null)
-                    return (new IntPtr(0));
+                {
+                    return IntPtr.Zero;
+                }
 
-                int bufferAddress;
-                ((IMemSinkSettings)psiMemoryFilter).get_BufferAddress(out bufferAddress);
-                return (new IntPtr(bufferAddress));
+                ((IMemSinkSettings)psiMemoryFilter).get_BufferAddress(out int address);
+                return new IntPtr(address);
             }
         }
 
         /// <summary>
         /// Get the current graph instance.
         /// </summary>
-        public static BDAGraph CurrentGraph { get { return (currentGraph); } }
+        public static BDAGraph CurrentGraph { get { return currentGraph; } }
 
         /// <summary>
         /// Get the current tuner.
         /// </summary>
-        public Tuner Tuner { get { return (tunerSpec); } }
+        public Tuner Tuner { get { return tunerSpec; } }
 
         private ITuningSpace tuningSpace = null;
         private ITuneRequest tuneRequest = null;
@@ -825,7 +808,7 @@ namespace DirectShow
                         }
 
                         string frequencyConversionString = string.Empty;
-                        string polarizationConversionString = string.Empty;                        
+                        string polarizationConversionString = string.Empty;
 
                         reply = locator.put_Azimuth(-1);
                         DsError.ThrowExceptionForHR(reply);
@@ -921,7 +904,7 @@ namespace DirectShow
                         reply = locator.get_CarrierFrequency(out carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency + frequencyConversionString);
-                        
+
                         int symbolRate;
                         reply = locator.get_SymbolRate(out symbolRate);
                         DsError.ThrowExceptionForHR(reply);
@@ -931,7 +914,7 @@ namespace DirectShow
                         reply = locator.get_InnerFECRate(out innerFec);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator inner FEC: " + innerFec);
-                        
+
                         Polarisation polarisation;
                         reply = locator.get_SignalPolarisation(out polarisation);
                         DsError.ThrowExceptionForHR(reply);
@@ -1059,7 +1042,7 @@ namespace DirectShow
                         ModulationType modulation;
                         reply = locator.get_Modulation(out modulation);
                         DsError.ThrowExceptionForHR(reply);
-                        LogMessage("Locator modulation: " + modulation);                        
+                        LogMessage("Locator modulation: " + modulation);
 
                         if (logSettings)
                         {
@@ -1493,17 +1476,17 @@ namespace DirectShow
             infiniteTeeFilter = addInfiniteTeeFilter();
             mpeg2DemuxFilter = addMPEG2DemuxFilter();
 
-            addHardwareFilters(tuner);
-            insertInfiniteTee();
-            addTransportStreamFilters();
-            addPSIMemoryFilter();
+            AddHardwareFilters(tuner);
+            InsertInfiniteTee();
+            AddTransportStreamFilters();
+            AddPSIMemoryFilter();
 
             if (tuningSpec.Frequency.TunerType == TunerType.ATSC ||
                 tuningSpec.Frequency.TunerType == TunerType.ATSCCable ||
                 tuningSpec.Frequency.TunerType == TunerType.ClearQAM)
-                connectDownStreamFilters(mpeg2DemuxFilter, MediaSubType.AtscSI);
+                ConnectDownStreamFilters(mpeg2DemuxFilter, MediaSubType.AtscSI);
             else
-                connectDownStreamFilters(mpeg2DemuxFilter, MediaSubType.DvbSI);
+                ConnectDownStreamFilters(mpeg2DemuxFilter, MediaSubType.DvbSI);
         }
 
         private void addNetworkProviderFilter(ITuningSpace dvbTuningSpace)
@@ -1555,11 +1538,11 @@ namespace DirectShow
             LogMessage("Tuning space set");
         }
 
-        private void addHardwareFilters(Tuner selectedTuner)
+        private void AddHardwareFilters(Tuner selectedTuner)
         {
             LogMessage("Adding hardware filters");
 
-            if (!addTunerFilter(selectedTuner))
+            if (AddTunerFilter(selectedTuner) == false)
             {
                 Logger.Instance.Write("<E> No valid BDA tuner filter found");
                 Environment.Exit((int)ExitCode.NoBDATunerFilter);
@@ -1579,7 +1562,7 @@ namespace DirectShow
 
             receiverFilters = new Collection<IBaseFilter>();
 
-            bool done = addReceiverFilters(tunerFilter, mpeg2DemuxFilter, receiverComponents, receiverFilters);
+            bool done = AddReceiverFilters(tunerFilter, mpeg2DemuxFilter, receiverComponents, receiverFilters);
             if (done)
                 LogMessage("Hardware filters added and connected");
             else
@@ -1589,11 +1572,11 @@ namespace DirectShow
             }
         }
 
-        private bool addTunerFilter(Tuner selectedTuner)
+        private bool AddTunerFilter(Tuner selectedTuner)
         {
             LogMessage("Adding tuner filter");
 
-            DsDevice[] devices = DsDevice.GetDevicesOfCat(FilterCategory.BDASourceFiltersCategory);
+            var devices = DsDevice.GetDevicesOfCat(FilterCategory.BDASourceFiltersCategory);
 
             for (int tunerIndex = 0; tunerIndex < devices.Length; tunerIndex++)
             {
@@ -1601,10 +1584,8 @@ namespace DirectShow
 
                 if (correctTuner)
                 {
-                    IBaseFilter tempTunerFilter;
-
                     LogMessage("Adding tuner filter " + devices[tunerIndex].Name);
-                    reply = GraphBuilder.AddSourceFilterForMoniker(devices[tunerIndex].Moniker, null, devices[tunerIndex].Name, out tempTunerFilter);
+                    reply = GraphBuilder.AddSourceFilterForMoniker(devices[tunerIndex].Moniker, null, devices[tunerIndex].Name, out IBaseFilter tempTunerFilter);
                     if (reply >= 0)
                     {
                         reply = CaptureGraphBuilder.RenderStream(null, null, networkProviderFilter, null, tempTunerFilter);
@@ -1612,13 +1593,12 @@ namespace DirectShow
                         {
                             LogMessage("Added tuner filter " + devices[tunerIndex].Name);
                             tunerFilter = tempTunerFilter;
-                            return (true);
+                            return true;
                         }
                         else
                         {
                             LogMessage("Failed to connect network provider to tuner filter " + devices[tunerIndex].Name + " reply 0x" + reply.ToString("X"));
                             reply = GraphBuilder.RemoveFilter(tempTunerFilter);
-                            Marshal.ReleaseComObject(tempTunerFilter);
                         }
                     }
                     else
@@ -1626,19 +1606,17 @@ namespace DirectShow
                 }
             }
 
-            return (false);
+            return false;
         }
 
-        private bool addReceiverFilters(IBaseFilter preceedingFilter, IBaseFilter mpeg2Demux, DsDevice[] receiverComponents, Collection<IBaseFilter> receiverFilters)
+        private bool AddReceiverFilters(IBaseFilter preceedingFilter, IBaseFilter mpeg2Demux, DsDevice[] receiverComponents, Collection<IBaseFilter> receiverFilters)
         {
-            IBaseFilter tempFilter;
-
             for (int index = 0; index < receiverComponents.Length; index++)
             {
                 DsDevice currentReceiver = receiverComponents[index];
 
                 LogMessage("Adding receiver filter " + currentReceiver.Name);
-                reply = GraphBuilder.AddSourceFilterForMoniker(currentReceiver.Moniker, null, currentReceiver.Name, out tempFilter);
+                reply = GraphBuilder.AddSourceFilterForMoniker(currentReceiver.Moniker, null, currentReceiver.Name, out IBaseFilter tempFilter);
                 if (reply < 0)
                     LogMessage("<E> Failed to load filter " + currentReceiver.Name);
                 else
@@ -1649,7 +1627,6 @@ namespace DirectShow
                         LogMessage("Could not connect to preceeding filter reply 0x" + reply.ToString("X"));
                         reply = GraphBuilder.RemoveFilter(tempFilter);
                         DsError.ThrowExceptionForHR(reply);
-                        Marshal.ReleaseComObject(tempFilter);
                     }
                     else
                     {
@@ -1660,25 +1637,23 @@ namespace DirectShow
                         if (reply < 0)
                         {
                             LogMessage("Could not connect to MPEG2 Demux filter reply 0x" + reply.ToString("X"));
-                            return (addReceiverFilters(tempFilter, mpeg2Demux, receiverComponents, receiverFilters));
+                            return (AddReceiverFilters(tempFilter, mpeg2Demux, receiverComponents, receiverFilters));
                         }
                         else
                         {
                             LogMessage("Connected to MPEG2 demux filter - hardware chain complete");
-                            return (true);
+                            return true;
                         }
                     }
                 }
             }
 
-            return (false);
+            return false;
         }
 
-        private void addTransportStreamFilters()
+        private void AddTransportStreamFilters()
         {
-            DsDevice[] devices;
-
-            devices = DsDevice.GetDevicesOfCat(FilterCategory.BDATransportInformationRenderersCategory);
+            var devices = DsDevice.GetDevicesOfCat(FilterCategory.BDATransportInformationRenderersCategory);
             for (int i = 0; i < devices.Length; i++)
             {
                 if (devices[i].Name.Equals("BDA MPEG2 Transport Information Filter"))
@@ -1711,7 +1686,7 @@ namespace DirectShow
 
             LogMessage("Added Infinite Tee Filter");
 
-            return (infiniteTeeFilter);
+            return infiniteTeeFilter;
         }
 
         private IBaseFilter addMPEG2DemuxFilter()
@@ -1724,10 +1699,10 @@ namespace DirectShow
 
             LogMessage("Added MPEG2 Demux");
 
-            return (mpeg2DemuxFilter);
+            return mpeg2DemuxFilter;
         }
 
-        private void addPSIMemoryFilter()
+        private void AddPSIMemoryFilter()
         {
             LogMessage("Adding PSI Memory Filter");
 
@@ -1756,62 +1731,59 @@ namespace DirectShow
             LogMessage("Added PSI Memory Filter");
         }
 
-        private void connectDownStreamFilters(IBaseFilter mpeg2DemuxFilter, Guid mediaSubType)
+        private void ConnectDownStreamFilters(IBaseFilter mpeg2DemuxFilter, Guid mediaSubType)
         {
-            LogMessage("Connecting MPEG2 demux to TIF filter using media subtype " + TranslateMediaSubType(mediaSubType));
 
-            IPin muxTIFPin = FindPin(mpeg2DemuxFilter, MediaType.Mpeg2Sections, mediaSubType, PinDirection.Output);
-            if (muxTIFPin == null)
             {
-                LogFilters();
-                Logger.Instance.Write("<E> The MPEG2 demux pin for media subtype " + TranslateMediaSubType(mediaSubType) + " does not exist");
+                LogMessage("Connecting MPEG2 demux to TIF filter using media subtype " + GetMediaSubTypeAsString(mediaSubType));
+
+                IPin muxTIFPin = FindPin(mpeg2DemuxFilter, MediaType.Mpeg2Sections, mediaSubType, PinDirection.Output);
+                if (muxTIFPin == null)
+                {
+                    LogFilters();
+                    Logger.Instance.Write("<E> The MPEG2 demux pin for media subtype " + GetMediaSubTypeAsString(mediaSubType) + " does not exist");
+                }
+
+                IPin tifPin = FindPin(tifFilter, PinDirection.Input);
+                reply = GraphBuilder.Connect(muxTIFPin, tifPin);
+                if (reply != 0)
+                    LogFilters();
+                DsError.ThrowExceptionForHR(reply);
+                LogMessage("Connected MPEG2 demux to TIF filter");
             }
-            IPin tifPin = FindPin(tifFilter, PinDirection.Input);
-            reply = GraphBuilder.Connect(muxTIFPin, tifPin);
-            if (reply != 0)
-                LogFilters();
-            DsError.ThrowExceptionForHR(reply);
-            LogMessage("Connected MPEG2 demux to TIF filter");
 
-            Marshal.ReleaseComObject(muxTIFPin);
-            Marshal.ReleaseComObject(tifPin);
+            {
+                LogMessage("Connecting MPEG2 Demux to Sections And Tables filter");
 
-            LogMessage("Connecting MPEG2 Demux to Sections And Tables filter");
-            IPin muxPinSecTab = FindPin(mpeg2DemuxFilter, MediaType.Mpeg2Sections, MediaSubType.Mpeg2Data, PinDirection.Output);
-            if (muxPinSecTab == null)
-                Logger.Instance.Write("<E> The MPEG2 demux pin for the Sections and Tables filter does not exist");
-            IPin secTabPin = FindPin(secTabFilter, PinDirection.Input);
-            reply = GraphBuilder.Connect(muxPinSecTab, secTabPin);
-            DsError.ThrowExceptionForHR(reply);
-            LogMessage("Connected MPEG2 demux to Sections And Tables filter");
+                IPin muxPinSecTab = FindPin(mpeg2DemuxFilter, MediaType.Mpeg2Sections, MediaSubType.Mpeg2Data, PinDirection.Output);
+                if (muxPinSecTab == null)
+                    Logger.Instance.Write("<E> The MPEG2 demux pin for the Sections and Tables filter does not exist");
 
-            Marshal.ReleaseComObject(muxPinSecTab);
-            Marshal.ReleaseComObject(secTabPin);
+                IPin secTabPin = FindPin(secTabFilter, PinDirection.Input);
+                reply = GraphBuilder.Connect(muxPinSecTab, secTabPin);
+                DsError.ThrowExceptionForHR(reply);
+                LogMessage("Connected MPEG2 demux to Sections And Tables filter");
+            }
 
-            LogMessage("Connecting Infinite Tee to PSI Memory filter");
+            {
+                LogMessage("Connecting Infinite Tee to PSI Memory filter");
 
-            IPin infiniteTeeOutputPin = FindPin(infiniteTeeFilter, "Output2");
-            if (infiniteTeeOutputPin == null)
-                Logger.Instance.Write("<E> InfiniteTee pin 'Output2' does not exist");
-            IPin psiInputPin = FindPin(psiMemoryFilter, PinDirection.Input);
-            reply = GraphBuilder.Connect(infiniteTeeOutputPin, psiInputPin);
-            DsError.ThrowExceptionForHR(reply);
-            LogMessage("Connected Infinite Tee to PSI Memory filter");
+                IPin infiniteTeeOutputPin = FindPin(infiniteTeeFilter, "Output2");
+                if (infiniteTeeOutputPin == null)
+                    Logger.Instance.Write("<E> InfiniteTee pin 'Output2' does not exist");
 
-            Marshal.ReleaseComObject(infiniteTeeOutputPin);
-            Marshal.ReleaseComObject(psiInputPin);
+                IPin psiInputPin = FindPin(psiMemoryFilter, PinDirection.Input);
+                reply = GraphBuilder.Connect(infiniteTeeOutputPin, psiInputPin);
+                DsError.ThrowExceptionForHR(reply);
+                LogMessage("Connected Infinite Tee to PSI Memory filter");
+            }
         }
 
-        private void insertInfiniteTee()
+        private void InsertInfiniteTee()
         {
             LogMessage("Inserting Infinite Tee in graph");
 
-            IBaseFilter sourceFilter;
-
-            if (receiverFilters == null)
-                sourceFilter = tunerFilter;
-            else
-                sourceFilter = receiverFilters[receiverFilters.Count - 1];
+            var sourceFilter = (receiverFilters == null) ? tunerFilter : receiverFilters[receiverFilters.Count - 1];
 
             LogMessage("Disconnecting source filter output pin");
             IPin captureOutputPin = FindPin(sourceFilter, PinDirection.Output);
@@ -1833,11 +1805,6 @@ namespace DirectShow
             IPin infiniteTeeOutputPin = FindPin(infiniteTeeFilter, PinDirection.Output);
             GraphBuilder.Connect(infiniteTeeOutputPin, mpeg2DemuxInputPin);
             DsError.ThrowExceptionForHR(reply);
-
-            Marshal.ReleaseComObject(captureOutputPin);
-            Marshal.ReleaseComObject(infiniteTeeInputPin);
-            Marshal.ReleaseComObject(mpeg2DemuxInputPin);
-            Marshal.ReleaseComObject(infiniteTeeOutputPin);
         }
 
         /// <summary>
@@ -1855,12 +1822,12 @@ namespace DirectShow
         /// <param name="newPids">A list of the new PID's to be set.</param>
         public void ChangePidMapping(int[] newPids)
         {
-            logPidsUnMapped(psiPids);
+            LogPidsUnMapped(psiPids);
 
             ((IMemSinkSettings)psiMemoryFilter).clearPIDs();
             psiPids.Clear();
 
-            logPidsMapped(newPids);
+            LogPidsMapped(newPids);
 
             foreach (int newPid in newPids)
             {
@@ -1871,7 +1838,7 @@ namespace DirectShow
             ((IMemSinkSettings)psiMemoryFilter).clear();
         }
 
-        private void logPidsUnMapped(Collection<int> oldPids)
+        private void LogPidsUnMapped(Collection<int> oldPids)
         {
             if (oldPids.Count == 0)
                 return;
@@ -1887,7 +1854,7 @@ namespace DirectShow
             LogMessage(pidString.ToString());
         }
 
-        private void logPidsMapped(int[] newPids)
+        private void LogPidsMapped(int[] newPids)
         {
             if (newPids.Length == 0)
                 return;
@@ -1909,10 +1876,11 @@ namespace DirectShow
         /// <returns>True if the graph can be started; false otherwise.</returns>
         public override bool Play()
         {
-            TerrestrialFrequency terrestrialFrequency = tuningSpec.Frequency as TerrestrialFrequency;
+            var terrestrialFrequency = tuningSpec.Frequency as TerrestrialFrequency;
             if (terrestrialFrequency != null && terrestrialFrequency.PlpNumber != -1)
+            {
                 GenericDVBT2Handler.SetPlp(tunerFilter, terrestrialFrequency.PlpNumber);
-
+            }
             SatelliteFrequency satelliteFrequency = tuningSpec.Frequency as SatelliteFrequency;
             if (satelliteFrequency == null)
             {
@@ -1921,40 +1889,40 @@ namespace DirectShow
                 DsError.ThrowExceptionForHR(reply);
 
                 Logger.Instance.Write("Running graph");
-                return (base.Play());
+                return base.Play();
             }
 
-            if (!satelliteFrequency.DiseqcRunParamters.SwitchAfterPlay)
+            if (satelliteFrequency.DiseqcRunParamters.SwitchAfterPlay == false)
             {
-                if (tuningSpec.Frequency.TunerType == TunerType.Satellite && ((SatelliteFrequency)tuningSpec.Frequency).DiseqcRunParamters.DiseqcSwitch != null)
+                if (tuningSpec.Frequency.TunerType == TunerType.Satellite && satelliteFrequency.DiseqcRunParamters.DiseqcSwitch != null)
                 {
                     if (satelliteFrequency.DiseqcRunParamters.UseSafeDiseqc)
                     {
                         Logger.Instance.Write("Checking tuner free for safe DiSEqC switching");
-                        
+
                         bool tunerFree = base.Play();
                         base.Stop();
-                        if (!tunerFree)
-                            return (false);
+                        if (tunerFree == false)
+                            return false;
 
                         Logger.Instance.Write("Tuner not in use - OK to change DiSEqC switch");
                     }
                 }
 
                 if (!satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
-                    changeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
+                    ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
 
                 Logger.Instance.Write("Setting tune request");
                 reply = (networkProviderFilter as ITuner).put_TuneRequest(tuneRequest);
                 DsError.ThrowExceptionForHR(reply);
 
                 if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
-                    changeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
+                    ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
 
-                setDVBS2Parameters();
+                SetDVBS2Parameters();
 
                 Logger.Instance.Write("Running graph");
-                return (base.Play());
+                return base.Play();
             }
             else
             {
@@ -1963,41 +1931,38 @@ namespace DirectShow
                 if (playReply)
                 {
                     if (!satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
-                        changeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);                    
+                        ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
 
                     Logger.Instance.Write("Setting tune request");
                     reply = (networkProviderFilter as ITuner).put_TuneRequest(tuneRequest);
                     DsError.ThrowExceptionForHR(reply);
 
                     if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
-                        changeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters); 
+                        ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
 
-                    setDVBS2Parameters();
+                    SetDVBS2Parameters();
                 }
 
-                return (playReply);
+                return playReply;
             }
-
         }
 
-        private void changeDiseqcSwitch(DiseqcRunParameters diseqcRunParameters)
+        private void ChangeDiseqcSwitch(DiseqcRunParameters diseqcRunParameters)
         {
             if (tuningSpec.Frequency.TunerType != TunerType.Satellite || ((SatelliteFrequency)tuningSpec.Frequency).DiseqcRunParamters.DiseqcSwitch == null)
                 return;
-            
-            SwitchReply switchReply = SwitchReply.NotSet;
 
-            switchReply = DiseqcHandlerBase.ProcessDisEqcSwitch(tuningSpec, tunerSpec, tunerFilter, diseqcRunParameters);
+            SwitchReply switchReply = DiseqcHandlerBase.ProcessDisEqcSwitch(tuningSpec, tunerSpec, tunerFilter, diseqcRunParameters);
             Thread.Sleep(500);
-            
+
             if (switchReply == SwitchReply.Failed)
             {
                 Logger.Instance.Write("Repeating DiSEqC command due to initial failure");
-                switchReply = DiseqcHandlerBase.ProcessDisEqcSwitch(tuningSpec, tunerSpec, tunerFilter, diseqcRunParameters);
-            }            
+                _ = DiseqcHandlerBase.ProcessDisEqcSwitch(tuningSpec, tunerSpec, tunerFilter, diseqcRunParameters);
+            }
         }
 
-        private void setDVBS2Parameters()
+        private void SetDVBS2Parameters()
         {
             SatelliteFrequency satelliteFrequency = tuningSpec.Frequency as SatelliteFrequency;
             if (satelliteFrequency == null)
@@ -2041,72 +2006,53 @@ namespace DirectShow
             base.Dispose();
 
             LogMessage("Releasing Network Provider");
-            Marshal.ReleaseComObject(networkProviderFilter);
             networkProviderFilter = null;
 
             LogMessage("Releasing MPEG2 Demux");
-            Marshal.ReleaseComObject(mpeg2DemuxFilter);
             mpeg2DemuxFilter = null;
 
             LogMessage("Releasing Tuner");
-            Marshal.ReleaseComObject(tunerFilter);
             tunerFilter = null;
-
-            if (receiverFilters != null)
-            {
-                foreach (IBaseFilter receiverFilter in receiverFilters)
-                {
-                    LogMessage("Releasing Receiver filter");
-                    Marshal.ReleaseComObject(receiverFilter);
-                }
-            }
 
             if (tifFilter != null)
             {
                 LogMessage("Releasing TIF filter");
-                Marshal.ReleaseComObject(tifFilter);
                 tifFilter = null;
             }
 
             if (secTabFilter != null)
             {
                 LogMessage("Releasing Sections And Tables filter");
-                Marshal.ReleaseComObject(secTabFilter);
                 secTabFilter = null;
             }
 
             if (infiniteTeeFilter != null)
             {
                 LogMessage("Releasing Infinite Tee filter");
-                Marshal.ReleaseComObject(infiniteTeeFilter);
                 infiniteTeeFilter = null;
             }
 
             if (psiMemoryFilter != null)
             {
                 LogMessage("Releasing PSI Memory filter");
-                Marshal.ReleaseComObject(psiMemoryFilter);
                 psiMemoryFilter = null;
             }
 
             if (tuningSpace != null)
             {
                 LogMessage("Releasing Tuning Space");
-                Marshal.ReleaseComObject(tuningSpace);
                 tuningSpace = null;
             }
 
             if (tuneRequest != null)
             {
                 LogMessage("Releasing Tune Request");
-                Marshal.ReleaseComObject(tuneRequest);
                 tuneRequest = null;
             }
 
             if (currentLocator != null)
             {
                 LogMessage("Releasing Locator");
-                Marshal.ReleaseComObject(currentLocator);
                 currentLocator = null;
             }
         }
@@ -2117,7 +2063,7 @@ namespace DirectShow
         public static void LoadTuners()
         {
             ObservableCollection<Tuner> tuners = new ObservableCollection<Tuner>();
-            
+
             if (RunParameters.IsMono || RunParameters.IsWine)
             {
                 Tuner.TunerCollection = tuners;
@@ -2126,55 +2072,31 @@ namespace DirectShow
 
             if (CommandLine.DummyTuners)
             {
-                Tuner tuner1 = new Tuner("");
-                tuner1.Name = "Dummy Terrestrial Tuner";
-                tuner1.TunerNodes = new Collection<TunerNode>();
-                tuner1.TunerNodes.Add(new TunerNode(0, TunerNodeType.Terrestrial));
-                tuners.Add(tuner1);
-
-                Tuner tuner2 = new Tuner("");
-                tuner2.Name = "Dummy Cable Tuner";
-                tuner2.TunerNodes = new Collection<TunerNode>();
-                tuner2.TunerNodes.Add(new TunerNode(0, TunerNodeType.Cable));
-                tuners.Add(tuner2);
-
-                Tuner tuner3 = new Tuner("");
-                tuner3.Name = "Dummy ATSC Tuner";
-                tuner3.TunerNodes = new Collection<TunerNode>();
-                tuner3.TunerNodes.Add(new TunerNode(0, TunerNodeType.ATSC));
-                tuner3.TunerNodes.Add(new TunerNode(0, TunerNodeType.Cable));
-                tuners.Add(tuner3);
-
-                Tuner tuner4 = new Tuner("");
-                tuner4.Name = "Dummy ISDB-S Tuner";
-                tuner4.TunerNodes = new Collection<TunerNode>();
-                tuner4.TunerNodes.Add(new TunerNode(0, TunerNodeType.ISDBS));
-                tuners.Add(tuner4);
-
-                Tuner tuner5 = new Tuner("");
-                tuner5.Name = "Dummy ISDB-T Tuner";
-                tuner5.TunerNodes = new Collection<TunerNode>();
-                tuner5.TunerNodes.Add(new TunerNode(0, TunerNodeType.ISDBT));
-                tuners.Add(tuner5);
+                tuners.Add(CreateTuner("Dummy Terrestrial Tuner", TunerNodeType.Terrestrial));
+                tuners.Add(CreateTuner("Dummy Cable Tuner", TunerNodeType.Cable));
+                tuners.Add(CreateTuner("Dummy ATSC Tuner", TunerNodeType.ATSC, TunerNodeType.Cable));
+                tuners.Add(CreateTuner("Dummy ISDB-S Tuner", TunerNodeType.ISDBS));
+                tuners.Add(CreateTuner("Dummy ISDB-T Tuner", TunerNodeType.ISDBT));
             }
 
-            DsDevice[] devices = DsDevice.GetDevicesOfCat(FilterCategory.BDASourceFiltersCategory);
+            var devices = DsDevice.GetDevicesOfCat(FilterCategory.BDASourceFiltersCategory);
 
             Logger.Instance.Write("Number of devices: " + devices.Length);
+
             int deviceNumber = 1;
-            
-            foreach (DsDevice device in devices)
+            foreach (var device in devices)
             {
-                Tuner tuner = new Tuner(device.DevicePath);
+                var tuner = new Tuner(device.DevicePath);
                 tuner.Name = device.Name;
-                tuner.TunerNodes = getTunerNodes(device, deviceNumber);
+                tuner.TunerNodes = GetTunerNodes(device, deviceNumber);
                 tuners.Add(tuner);
                 deviceNumber++;
             }
 
             Logger.Instance.Write(" ");
+
             int tunerNumber = 1;
-            foreach (Tuner tuner in tuners)
+            foreach (var tuner in tuners)
             {
                 Logger.Instance.Write("Found tuner " + tunerNumber + ": " + tuner);
                 tunerNumber++;
@@ -2184,48 +2106,56 @@ namespace DirectShow
             Tuner.TunerCollection = tuners;
         }
 
-        private static Collection<TunerNode> getTunerNodes(DsDevice device, int deviceNumber)
+        private static Tuner CreateTuner(string name, params TunerNodeType[] nodeTypes)
+        {
+            var result = new Tuner(string.Empty);
+            result.Name = name;
+            result.TunerNodes = new Collection<TunerNode>();
+            foreach (var nodeType in nodeTypes)
+            {
+                var node = new TunerNode(0, nodeType);
+                result.TunerNodes.Add(node);
+            }
+
+            return result;
+        }
+
+        private static Collection<TunerNode> GetTunerNodes(DsDevice device, int deviceNumber)
         {
             Logger.Instance.Write("Tuner info: Processing device " + deviceNumber + " - " + (string.IsNullOrWhiteSpace(device.DevicePath) ? "Unknown Device" : device.DevicePath));
 
-            IFilterGraph2 graphBuilder;
-            IBaseFilter tunerFilter;            
-            int reply;
+            var result = new Collection<TunerNode>();
 
-            Collection<TunerNode> tunerNodes = new Collection<TunerNode>();
-
-            if (device.Moniker != null)
-            {
-                string displayName = null;
-                device.Moniker.GetDisplayName(null, null, out displayName);
-                Logger.Instance.Write("Tuner info: Device moniker display name is " +
-                    (string.IsNullOrWhiteSpace(displayName) ? "null" : displayName));
-            }
-            else
+            if (device.Moniker is null)
             {
                 Logger.Instance.Write("Device " +
                     (!string.IsNullOrWhiteSpace(device.Name) ? device.Name : device.DevicePath) +
                     " ignored - moniker is null");
-                return (tunerNodes);
+                return result;
             }
+
+            device.Moniker.GetDisplayName(null, null, out string displayName);
+            Logger.Instance.Write("Tuner info: Device moniker display name is " +
+                (string.IsNullOrWhiteSpace(displayName) ? "null" : displayName));
 
             Logger.Instance.Write("Tuner info: Device name is " +
                 (string.IsNullOrWhiteSpace(device.Name) ? "null" : device.Name));
 
-            graphBuilder = (IFilterGraph2)new FilterGraph();
+            IFilterGraph2 graphBuilder = (IFilterGraph2)new FilterGraph();
 
+            int hr;
+            IBaseFilter tunerFilter;
             try
             {
-                reply = graphBuilder.AddSourceFilterForMoniker(device.Moniker, null, device.Name, out tunerFilter);
-                if (reply != 0)
+                hr = graphBuilder.AddSourceFilterForMoniker(device.Moniker, null, device.Name, out tunerFilter);
+                if (hr != 0)
                 {
                     Logger.Instance.Write("<e> Device " +
                         (!string.IsNullOrWhiteSpace(device.Name) ? device.Name : device.DevicePath) +
                         " ignored - tuner filter could not be added to graph due to error");
-                    string errorMessage = DsError.GetErrorText(reply);
-                    Logger.Instance.Write("<e> " + (errorMessage != null ? errorMessage : "Error code 0x" + reply.ToString("x")));
-                    Marshal.ReleaseComObject(graphBuilder);
-                    return (tunerNodes);
+                    string errorMessage = DsError.GetErrorText(hr);
+                    Logger.Instance.Write("<e> " + (errorMessage != null ? errorMessage : "Error code 0x" + hr.ToString("x")));
+                    return result;
                 }
             }
             catch (Exception e)
@@ -2234,45 +2164,36 @@ namespace DirectShow
                     (!string.IsNullOrWhiteSpace(device.Name) ? device.Name : device.DevicePath) +
                     " ignored - tuner filter could not be added to graph due to exception");
                 Logger.Instance.Write("<E> " + e.Message);
-                Marshal.ReleaseComObject(graphBuilder);
-                return (tunerNodes);
+                return result;
             }
 
             IBDA_Topology topology = tunerFilter as IBDA_Topology;
             if (topology == null)
             {
                 FilterGraphTools.RemoveAllFilters(graphBuilder);
-                Marshal.ReleaseComObject(graphBuilder);
-                Marshal.ReleaseComObject(tunerFilter);
                 Logger.Instance.Write("Unable to get topology from tuner");
-                return (tunerNodes);
+                return result;
             }
 
-            int nodeCount;
-            int[] nodeTypes = new int[256];
-            reply = topology.GetNodeTypes(out nodeCount, nodeTypes.Length, nodeTypes);
-            DsError.ThrowExceptionForHR(reply);
+            var nodeTypes = new int[256];
+            hr = topology.GetNodeTypes(out int nodeCount, nodeTypes.Length, nodeTypes);
+            DsError.ThrowExceptionForHR(hr);
 
             if (nodeCount != 0)
             {
-                for (int index = 0; index < nodeCount; index++)
-                    Logger.Instance.Write("Tuner info: Node type " + nodeTypes[index]);
-            }
-            else
                 Logger.Instance.Write("Tuner info: GetNodeTypes returned zero entries");
-
-            int descriptorCount;
-            BDANodeDescriptor[] descriptors = new BDANodeDescriptor[256];
-            reply = topology.GetNodeDescriptors(out descriptorCount, descriptors.Length, descriptors);
-            DsError.ThrowExceptionForHR(reply);
-
-            if (descriptorCount != 0)
-            {
-                for (int index = 0; index < descriptorCount; index++)
-                    Logger.Instance.Write("Tuner info: Descriptor " + descriptors[index].guidName.ToString() + " " + descriptors[index].guidFunction.ToString() + " " + descriptors[index].ulBdaNodeType);
             }
             else
-                Logger.Instance.Write("Tuner info: GetNodeDescriptors returned zero entries");
+            {
+                for (int i = 0; i < nodeCount; i++)
+                    Logger.Instance.Write("Tuner info: Node type " + nodeTypes[i]);
+            }
+
+            var descriptors = new BDANodeDescriptor[256];
+            hr = topology.GetNodeDescriptors(out int descriptorCount, descriptors.Length, descriptors);
+            DsError.ThrowExceptionForHR(hr);
+
+            LogNodeDescriptors(descriptors, descriptorCount);
 
             for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
             {
@@ -2283,7 +2204,7 @@ namespace DirectShow
 
                 for (int descriptorIndex = 0; descriptorIndex < descriptorCount; descriptorIndex++)
                 {
-                    BDANodeDescriptor descriptor = descriptors[descriptorIndex];
+                    var descriptor = descriptors[descriptorIndex];
 
                     if (descriptor.ulBdaNodeType == nodeType)
                     {
@@ -2292,171 +2213,175 @@ namespace DirectShow
                         if (descriptor.guidFunction == BDANodeCategory.QPSKDemodulator)
                         {
                             Logger.Instance.Write("Tuner info: Found satellite descriptor");
-                            tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.Satellite));
+                            result.Add(new TunerNode(nodeType, TunerNodeType.Satellite));
+                        }
+                        else if (descriptor.guidFunction == BDANodeCategory.COFDMDemodulator)
+                        {
+                            Logger.Instance.Write("Tuner info: Found terrestrial descriptor");
+                            result.Add(new TunerNode(nodeType, TunerNodeType.Terrestrial));
+                        }
+                        else if (descriptor.guidFunction == BDANodeCategory.QAMDemodulator)
+                        {
+                            Logger.Instance.Write("Tuner info: Found cable descriptor");
+                            result.Add(new TunerNode(nodeType, TunerNodeType.Cable));
+                        }
+                        else if (descriptor.guidFunction == BDANodeCategory.EightVSBDemodulator)
+                        {
+                            Logger.Instance.Write("Tuner info: Found ATSC descriptor");
+                            result.Add(new TunerNode(nodeType, TunerNodeType.ATSC));
+                        }
+                        else if (descriptor.guidFunction == BDANodeCategory.ISDBSDemodulator)
+                        {
+                            Logger.Instance.Write("Tuner info: Found ISDB-S descriptor");
+                            result.Add(new TunerNode(nodeType, TunerNodeType.ISDBS));
+                        }
+                        else if (descriptor.guidFunction == BDANodeCategory.ISDBTDemodulator)
+                        {
+                            Logger.Instance.Write("Tuner info: Found ISDB-T descriptor");
+                            result.Add(new TunerNode(nodeType, TunerNodeType.ISDBT));
                         }
                         else
                         {
-                            if (descriptor.guidFunction == BDANodeCategory.COFDMDemodulator)
-                            {
-                                Logger.Instance.Write("Tuner info: Found terrestrial descriptor");
-                                tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.Terrestrial));
-                            }
-                            else
-                            {
-                                if (descriptor.guidFunction == BDANodeCategory.QAMDemodulator)
-                                {
-                                    Logger.Instance.Write("Tuner info: Found cable descriptor");
-                                    tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.Cable));
-                                }
-                                else
-                                {
-                                    if (descriptor.guidFunction == BDANodeCategory.EightVSBDemodulator)
-                                    {
-                                        Logger.Instance.Write("Tuner info: Found ATSC descriptor");
-                                        tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.ATSC));
-                                    }
-                                    else
-                                    {
-                                        if (descriptor.guidFunction == BDANodeCategory.ISDBSDemodulator)
-                                        {
-                                            Logger.Instance.Write("Tuner info: Found ISDB-S descriptor");
-                                            tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.ISDBS));
-                                        }
-                                        else
-                                        {
-                                            if (descriptor.guidFunction == BDANodeCategory.ISDBTDemodulator)
-                                            {
-                                                Logger.Instance.Write("Tuner info: Found ISDB-T descriptor");
-                                                tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.ISDBT));
-                                            }
-                                            else
-                                            {
-                                                Logger.Instance.Write("Tuner info: Undefined descriptor found " + descriptor.guidFunction);
-                                                tunerNodes.Add(new TunerNode(nodeType, TunerNodeType.Other));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            Logger.Instance.Write("Tuner info: Undefined descriptor found " + descriptor.guidFunction);
+                            result.Add(new TunerNode(nodeType, TunerNodeType.Other));
                         }
                     }
                 }
 
-                if (!found)
+                if (found == false)
                     Logger.Instance.Write("Tuner info: Node type " + nodeType + " ignored - no descriptor found");
             }
 
             Logger.Instance.Write("Tuner info: All nodes processed");
 
             FilterGraphTools.RemoveAllFilters(graphBuilder);
-            Marshal.ReleaseComObject(graphBuilder);
-            Marshal.ReleaseComObject(tunerFilter);
 
             Logger.Instance.Write("Tuner info: Processing completed for tuner " + deviceNumber);
 
-            return (tunerNodes);
+            return result;
         }
 
-        private Collection<IBDA_SignalStatistics> getSignalStatisticsInterfaces(string action)
+        private Collection<IBDA_SignalStatistics> GetSignalStatisticsInterfaces(string action)
         {
-            IBDA_Topology topology = tunerFilter as IBDA_Topology;
+            var topology = tunerFilter as IBDA_Topology;
             if (topology == null)
             {
-                Logger.Instance.Write("BDA Can't get " + action + ": no topology");
-                return (null);
+                Logger.Instance.Write("BDA can't get " + action + ": no topology");
+                return null;
             }
-
-            Collection<IBDA_SignalStatistics> signalStatsCollection = new Collection<IBDA_SignalStatistics>();
 
             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                 Logger.Instance.Write("BDA Topology available");
 
-            int nodeTypeCount = 0;
-            int[] nodeTypes = new int[10];
+            var nodeTypes = new int[10];
+            int hr = topology.GetNodeTypes(out int nodeTypeCount, nodeTypes.Length, nodeTypes);
+            DsError.ThrowExceptionForHR(hr);
 
-            int reply = topology.GetNodeTypes(out nodeTypeCount, 10, nodeTypes);
-            DsError.ThrowExceptionForHR(reply);
+            LogNodeTypes(nodeTypes, nodeTypeCount);
+            LogNodeInterfaces(topology, nodeTypes, nodeTypeCount);
 
-            if (nodeTypeCount != 0)
+            var result = new Collection<IBDA_SignalStatistics>();
+
+            for (int i = 0; i < nodeTypeCount; i++)
             {
-                StringBuilder displayNodes = new StringBuilder();
+                var nodeType = nodeTypes[i];
 
-                for (int index = 0; index < nodeTypeCount; index++)
-                {
-                    if (displayNodes.Length != 0)
-                        displayNodes.Append(", ");
-                    displayNodes.Append(nodeTypes[index].ToString());
-                }
-
-                if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                    Logger.Instance.Write("BDA Node types: " + displayNodes);
-            }
-            else
-                Logger.Instance.Write("BDA GetNodeTypes returned zero entries");
-
-            for (int nodeTypeIndex = 0; nodeTypeIndex < nodeTypeCount; nodeTypeIndex++)
-            {
-                int interfaceCount;
                 Guid[] interfaces = new Guid[32];
-                reply = topology.GetNodeInterfaces(nodeTypes[nodeTypeIndex], out interfaceCount, 32, interfaces);
-                DsError.ThrowExceptionForHR(reply);
-
-                if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                {
-                    Logger.Instance.Write("BDA node type " + nodeTypes[nodeTypeIndex] + " has " + interfaceCount + " interfaces");
-
-                    for (int interfaceIndex = 0; interfaceIndex < interfaceCount; interfaceIndex++)
-                        Logger.Instance.Write("BDA Interface: " + interfaces[interfaceIndex].ToString());
-                }
-            }
-
-            for (int nodeTypeIndex = 0; nodeTypeIndex < nodeTypeCount; nodeTypeIndex++)
-            {
-                int interfaceCount;
-                Guid[] interfaces = new Guid[32];
-                reply = topology.GetNodeInterfaces(nodeTypes[nodeTypeIndex], out interfaceCount, 32, interfaces);
-                DsError.ThrowExceptionForHR(reply);
+                hr = topology.GetNodeInterfaces(nodeType, out int interfaceCount, interfaces.Length, interfaces);
+                DsError.ThrowExceptionForHR(hr);
 
                 if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                     Logger.Instance.Write("BDA Signal stats interface is " + typeof(IBDA_SignalStatistics).GUID.ToString());
 
-                for (int searchIndex = 0; searchIndex < interfaceCount; searchIndex++)
+                for (int j = 0; j < interfaceCount; j++)
                 {
-                    if (interfaces[searchIndex] == typeof(IBDA_SignalStatistics).GUID)
+                    if (interfaces[j] == typeof(IBDA_SignalStatistics).GUID)
                     {
                         if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                            Logger.Instance.Write("BDA Signal stats interface located for node type " + nodeTypes[nodeTypeIndex]);
+                            Logger.Instance.Write("BDA Signal stats interface located for node type " + nodeType);
 
-                        object controlNode;
-                        reply = topology.GetControlNode(0, 1, nodeTypes[nodeTypeIndex], out controlNode);
-                        DsError.ThrowExceptionForHR(reply);
+                        hr = topology.GetControlNode(0, 1, nodeType, out object controlNode);
+                        DsError.ThrowExceptionForHR(hr);
 
-                        IBDA_SignalStatistics signalStats = controlNode as IBDA_SignalStatistics;
-                        if (signalStats == null)
-                            Logger.Instance.Write("BDA Can't get " + action + ": cast of control node failed");
-                        else
+                        if (controlNode is IBDA_SignalStatistics signalStats)
                         {
+                            result.Add(signalStats);
+
                             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
                                 Logger.Instance.Write("BDA Adding signal stats interface to collection");
-                            signalStatsCollection.Add(signalStats);
+                        }
+                        else
+                        {
+                            Logger.Instance.Write("BDA Can't get " + action + ": cast of control node failed");
                         }
                     }
                 }
             }
 
             if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                Logger.Instance.Write("BDA Returning " + signalStatsCollection.Count + " signal stats interfaces");
+                Logger.Instance.Write("BDA Returning " + result.Count + " signal stats interfaces");
 
-            return (signalStatsCollection);
+            return result;
         }
 
-        private void releaseSignalStatisticsInterfaces(Collection<IBDA_SignalStatistics> signalStatisticsCollection)
+        private static void LogNodeDescriptors(BDANodeDescriptor[] descriptors, int descriptorCount)
         {
-            if (TraceEntry.IsDefined(TraceName.BdaSigStats))
-                Logger.Instance.Write("BDA Releasing signal stats interfaces");
+            if (descriptorCount != 0)
+            {
+                Logger.Instance.Write("Tuner info: GetNodeDescriptors returned zero entries");
+            }
+            else
+            {
+                for (int i = 0; i < descriptorCount; i++)
+                {
+                    Logger.Instance.Write("Tuner info: Descriptor " + descriptors[i].guidName.ToString() + " " + descriptors[i].guidFunction.ToString() + " " + descriptors[i].ulBdaNodeType);
+                }
+            }
+        }
 
-            foreach (IBDA_SignalStatistics signalStatistics in signalStatisticsCollection)
-                Marshal.ReleaseComObject(signalStatistics);
+        private static void LogNodeTypes(int[] nodeTypes, int nodeTypeCount)
+        {
+            if (nodeTypeCount == 0)
+            {
+                Logger.Instance.Write("BDA GetNodeTypes returned zero entries");
+            }
+            else
+            {
+                var builder = new StringBuilder();
+
+                for (int i = 0; i < nodeTypeCount; i++)
+                {
+                    if (builder.Length != 0)
+                        builder.Append(", ");
+
+                    builder.Append(nodeTypes[i].ToString());
+                }
+
+                if (TraceEntry.IsDefined(TraceName.BdaSigStats))
+                {
+                    Logger.Instance.Write("BDA Node types: " + builder);
+                }
+            }
+        }
+
+        private static void LogNodeInterfaces(IBDA_Topology topology, int[] nodeTypes, int nodeTypeCount)
+        {
+            for (int i = 0; i < nodeTypeCount; i++)
+            {
+                Guid[] interfaces = new Guid[32];
+                int hr = topology.GetNodeInterfaces(nodeTypes[i], out int interfaceCount, 32, interfaces);
+                DsError.ThrowExceptionForHR(hr);
+
+                if (TraceEntry.IsDefined(TraceName.BdaSigStats))
+                {
+                    Logger.Instance.Write("BDA node type " + nodeTypes[i] + " has " + interfaceCount + " interfaces");
+
+                    for (int j = 0; j < interfaceCount; j++)
+                    {
+                        Logger.Instance.Write("BDA Interface: " + interfaces[j].ToString());
+                    }
+                }
+            }
         }
     }
 }

@@ -25,52 +25,36 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using System.Diagnostics;
-using System.Threading;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace DomainObjects
 {
     /// <summary>
     /// The class that creates an MXF file for import to 7MC.
     /// </summary>
-    public sealed class OutputFileMXF
+    public static class OutputFileMXF
     {
-        private static string actualFileName;
-
         private static Collection<KeywordGroup> groups;
         private static Collection<string> people;
         private static Collection<string> series;
         private static Collection<int> stationImages;
         private static Collection<Guid> programImages;
         private static Collection<string> duplicateStationNames;
-        
+
         private static bool isSpecial;
         private static bool isMovie;
         private static bool isSports;
         private static bool isKids;
         private static bool isNews;
 
-        private static string importName;
-        private static string importReference;
-
-        private static Process importProcess;
-        private static bool importExited;
-
         private static Collection<string> programIdentifiers;
         private static Collection<string> programIdentifierTitles;
 
-        private static string mcstoreVersion;
-        private static string mcstorePublicKey;
-
-        private static string mcepgVersion;
-        private static string mcepgPublicKey;
-
-        private OutputFileMXF() { }
-
         /// <summary>
-        /// Create the MXF file.
+        /// Create the MXF file
         /// </summary>
-        /// <returns>An error message if the process fails; null otherwise.</returns>
+        /// <returns>An error message if the process fails; null otherwise</returns>
         public static string Process()
         {
             if (OptionEntry.IsDefined(RunParameters.Instance.Options, OptionName.NoDataNoFile))
@@ -82,41 +66,40 @@ namespace DomainObjects
                 }
             }
 
-            mcepgVersion = getAssemblyVersion("mcepg.dll");
+            var mcepgVersion = GetAssemblyVersionString("mcepg.dll");
             if (string.IsNullOrWhiteSpace(mcepgVersion))
                 return ("Failed to get the assembly version for mcpeg.dll");
- 
-            mcepgPublicKey = getAssemblyPublicKey("mcepg.dll");
+
+            var mcepgPublicKey = GetAssemblyPublicKey("mcepg.dll");
             if (string.IsNullOrWhiteSpace(mcepgPublicKey))
                 return ("Failed to get the public key for mcpeg.dll");
-            
-            mcstoreVersion = getAssemblyVersion("mcstore.dll");
+
+            var mcstoreVersion = GetAssemblyVersionString("mcstore.dll");
             if (string.IsNullOrWhiteSpace(mcstoreVersion))
                 return ("Failed to get the assembly version for mcstore.dll");
 
-            mcstorePublicKey = getAssemblyPublicKey("mcstore.dll");
+            var mcstorePublicKey = GetAssemblyPublicKey("mcstore.dll");
             if (string.IsNullOrWhiteSpace(mcstorePublicKey))
                 return ("Failed to get the public key for mcstore.dll");
 
-            actualFileName = Path.Combine(RunParameters.DataDirectory, "TVGuide.mxf");
+            var actualFileName = Path.Combine(RunParameters.DataDirectory, "TVGuide.mxf");
 
             try
             {
-                Logger.Instance.Write("Deleting any existing version of output file");
-                File.SetAttributes(actualFileName, FileAttributes.Normal);
-                File.Delete(actualFileName);
+                if (File.Exists(actualFileName))
+                {
+                    Logger.Instance.Write("Deleting any existing version of output file");
+                    File.SetAttributes(actualFileName, FileAttributes.Normal);
+                    File.Delete(actualFileName);
+                }
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
-                Logger.Instance.Write("File delete exception: " + e.Message);
+                Logger.Instance.Write("File delete exception: " + ex.Message);
             }
 
-            if (RunParameters.Instance.WMCImportName != null)
-                importName = RunParameters.Instance.WMCImportName;
-
-            if (importName == null)
-                importName = "EPG Collector";
-            importReference = importName.Replace(" ", string.Empty);
+            var importName = (string.IsNullOrWhiteSpace(RunParameters.Instance.WMCImportName)) ? "EPG Collector" : RunParameters.Instance.WMCImportName;
+            var importReference = importName.Replace(" ", string.Empty);
             Logger.Instance.Write("Import name set to '" + importName + "'");
 
             duplicateStationNames = new Collection<string>();
@@ -124,10 +107,10 @@ namespace DomainObjects
             {
                 if (station.Included)
                 {
-                    int occurrences = countStationName(station);
+                    int occurrences = CountStationName(station);
                     if (occurrences > 1)
                     {
-                        if (!duplicateStationNames.Contains(station.Name))
+                        if (duplicateStationNames.Contains(station.Name) == false)
                             duplicateStationNames.Add(station.Name);
                     }
                 }
@@ -135,212 +118,212 @@ namespace DomainObjects
 
             Logger.Instance.Write("Creating output file: " + actualFileName);
 
-            XmlWriterSettings settings = new XmlWriterSettings();
-
-            settings.Indent = true;
-            settings.NewLineOnAttributes = false;
-            if (!OutputFile.UseUnicodeEncoding)
-                settings.Encoding = new UTF8Encoding();
-            else
-                settings.Encoding = new UnicodeEncoding();
-            settings.CloseOutput = true;
-            
             try
             {
-                using (XmlWriter xmlWriter = XmlWriter.Create(actualFileName, settings))
+                var settings = new XmlWriterSettings
                 {
-                    xmlWriter.WriteStartDocument();
+                    Indent = true,
+                    NewLineOnAttributes = false,
+                    Encoding = (OutputFile.UseUnicodeEncoding == false) ? Encoding.UTF8 : Encoding.Unicode,
+                    CloseOutput = true
+                };
 
-                    xmlWriter.WriteStartElement("MXF");
-                    xmlWriter.WriteAttributeString("xmlns", "sql", null, "urn:schemas-microsoft-com:XML-sql");
-                    xmlWriter.WriteAttributeString("xmlns", "xsi", null, @"http://www.w3.org/2001/XMLSchema-instance");
+                using (var writer = XmlWriter.Create(actualFileName, settings))
+                {
+                    writer.WriteStartDocument();
 
-                    xmlWriter.WriteStartElement("Assembly");
-                    xmlWriter.WriteAttributeString("name", "mcepg");
-                    xmlWriter.WriteAttributeString("version", mcepgVersion);
+                    writer.WriteStartElement("MXF");
+                    writer.WriteAttributeString("xmlns", "sql", null, "urn:schemas-microsoft-com:XML-sql");
+                    writer.WriteAttributeString("xmlns", "xsi", null, @"http://www.w3.org/2001/XMLSchema-instance");
 
-                    xmlWriter.WriteAttributeString("cultureInfo", "");
-                    xmlWriter.WriteAttributeString("publicKey", mcepgPublicKey);
-                    xmlWriter.WriteStartElement("NameSpace");
-                    xmlWriter.WriteAttributeString("name", "Microsoft.MediaCenter.Guide");
+                    writer.WriteStartElement("Assembly");
+                    writer.WriteAttributeString("name", "mcepg");
+                    writer.WriteAttributeString("version", mcepgVersion);
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Lineup");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteAttributeString("cultureInfo", "");
+                    writer.WriteAttributeString("publicKey", mcepgPublicKey);
+                    writer.WriteStartElement("NameSpace");
+                    writer.WriteAttributeString("name", "Microsoft.MediaCenter.Guide");
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Channel");
-                    xmlWriter.WriteAttributeString("parentFieldName", "lineup");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Lineup");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Service");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Channel");
+                    writer.WriteAttributeString("parentFieldName", "lineup");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "ScheduleEntry");
-                    xmlWriter.WriteAttributeString("groupName", "ScheduleEntries");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Service");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "ScheduleEntry");
+                    writer.WriteAttributeString("groupName", "ScheduleEntries");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Keyword");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "KeywordGroup");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Keyword");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Person");
-                    xmlWriter.WriteAttributeString("groupName", "People");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "KeywordGroup");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "ActorRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Person");
+                    writer.WriteAttributeString("groupName", "People");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "DirectorRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "ActorRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "WriterRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "DirectorRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "HostRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "WriterRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "GuestActorRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "HostRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "ProducerRole");
-                    xmlWriter.WriteAttributeString("parentFieldName", "program");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "GuestActorRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "GuideImage");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "ProducerRole");
+                    writer.WriteAttributeString("parentFieldName", "program");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Affiliate");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "GuideImage");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "SeriesInfo");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Affiliate");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Season");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "SeriesInfo");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteEndElement();
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Season");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Assembly");
-                    xmlWriter.WriteAttributeString("name", "mcstore");
-                    xmlWriter.WriteAttributeString("version", mcstoreVersion);
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteAttributeString("cultureInfo", "");
-                    xmlWriter.WriteAttributeString("publicKey", mcstorePublicKey);
-                    xmlWriter.WriteStartElement("NameSpace");
-                    xmlWriter.WriteAttributeString("name", "Microsoft.MediaCenter.Store");
+                    writer.WriteStartElement("Assembly");
+                    writer.WriteAttributeString("name", "mcstore");
+                    writer.WriteAttributeString("version", mcstoreVersion);
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "Provider");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteAttributeString("cultureInfo", "");
+                    writer.WriteAttributeString("publicKey", mcstorePublicKey);
+                    writer.WriteStartElement("NameSpace");
+                    writer.WriteAttributeString("name", "Microsoft.MediaCenter.Store");
 
-                    xmlWriter.WriteStartElement("Type");
-                    xmlWriter.WriteAttributeString("name", "UId");
-                    xmlWriter.WriteAttributeString("parentFieldName", "target");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "Provider");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteEndElement();
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Type");
+                    writer.WriteAttributeString("name", "UId");
+                    writer.WriteAttributeString("parentFieldName", "target");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Providers");
-                    xmlWriter.WriteStartElement("Provider");
-                    xmlWriter.WriteAttributeString("id", "provider1");
-                    xmlWriter.WriteAttributeString("name", importReference);
-                    xmlWriter.WriteAttributeString("displayName", importName);
-                    xmlWriter.WriteAttributeString("copyright", "");
-                    xmlWriter.WriteEndElement();
-                    xmlWriter.WriteEndElement();
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("With");
-                    xmlWriter.WriteAttributeString("provider", "provider1");
+                    writer.WriteStartElement("Providers");
+                    writer.WriteStartElement("Provider");
+                    writer.WriteAttributeString("id", "provider1");
+                    writer.WriteAttributeString("name", importReference);
+                    writer.WriteAttributeString("displayName", importName);
+                    writer.WriteAttributeString("copyright", "");
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Keywords");
-                    processKeywords(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("With");
+                    writer.WriteAttributeString("provider", "provider1");
 
-                    xmlWriter.WriteStartElement("KeywordGroups");
-                    processKeywordGroups(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Keywords");
+                    ProcessKeywords(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("GuideImages");
-                    processGuideImages(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("KeywordGroups");
+                    ProcessKeywordGroups(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("People");
-                    processPeople(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("GuideImages");
+                    ProcessGuideImages(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("SeriesInfos");
-                    processSeries(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("People");
+                    ProcessPeople(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Seasons");
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("SeriesInfos");
+                    ProcessSeries(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Programs");
-                    processPrograms(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Seasons");
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Affiliates");
-                    processAffiliates(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Programs");
+                    ProcessPrograms(writer);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Services");
-                    processServices(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Affiliates");
+                    ProcessAffiliates(writer, importName, importReference);
+                    writer.WriteEndElement();
 
-                    processSchedules(xmlWriter);
+                    writer.WriteStartElement("Services");
+                    ProcessServices(writer, importReference);
+                    writer.WriteEndElement();
 
-                    xmlWriter.WriteStartElement("Lineups");
-                    processLineUps(xmlWriter);
-                    xmlWriter.WriteEndElement();
+                    ProcessSchedules(writer);
 
-                    xmlWriter.WriteEndElement();
-                    xmlWriter.WriteEndDocument();
+                    writer.WriteStartElement("Lineups");
+                    ProcessLineUps(writer, importName);
+                    writer.WriteEndElement();
 
-                    xmlWriter.Flush();
-                    xmlWriter.Close();
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+
+                    writer.Flush();
+                    writer.Close();
                 }
             }
-            catch (XmlException ex1)
+            catch (XmlException ex)
             {
-                return (ex1.Message);
+                return ex.Message;
             }
-            catch (IOException ex2)
+            catch (IOException ex)
             {
-                return (ex2.Message);
+                return ex.Message;
             }
 
-            string reply = runImportUtility(actualFileName);
+            var reply = RunImportUtility(actualFileName);
             if (reply != null)
-                return (reply);
+            {
+                return reply;
+            }
 
             if (OptionEntry.IsDefined(OptionName.CreateBrChannels))
                 OutputFileBladeRunner.Process(actualFileName);
@@ -349,10 +332,10 @@ namespace DomainObjects
             if (OptionEntry.IsDefined(OptionName.CreateSageTvFrq))
                 OutputFileSageTVFrq.Process(actualFileName);
 
-            return (null);
+            return null;
         }
 
-        private static int countStationName(TVStation station)
+        private static int CountStationName(TVStation station)
         {
             int count = 0;
 
@@ -365,7 +348,7 @@ namespace DomainObjects
             return (count);
         }
 
-        private static void processKeywords(XmlWriter xmlWriter)
+        private static void ProcessKeywords(XmlWriter xmlWriter)
         {
             groups = new Collection<KeywordGroup>();
             groups.Add(new KeywordGroup("General"));
@@ -377,7 +360,7 @@ namespace DomainObjects
                     foreach (EPGEntry epgEntry in station.EPGCollection)
                     {
                         if (epgEntry.EventCategory != null)
-                            processCategory(xmlWriter, groups, epgEntry.EventCategory.GetDescription(EventCategoryMode.Wmc)); 
+                            ProcessCategory(xmlWriter, groups, epgEntry.EventCategory.GetDescription(EventCategoryMode.Wmc));
                     }
                 }
             }
@@ -386,7 +369,7 @@ namespace DomainObjects
             {
                 xmlWriter.WriteStartElement("Keyword");
                 xmlWriter.WriteAttributeString("id", "k" + ((groups.IndexOf(group) + 1)));
-                xmlWriter.WriteAttributeString("word", group.Name.Trim()); 
+                xmlWriter.WriteAttributeString("word", group.Name.Trim());
                 xmlWriter.WriteEndElement();
 
                 foreach (string keyword in group.Keywords)
@@ -399,14 +382,14 @@ namespace DomainObjects
             }
         }
 
-        private static void processCategory(XmlWriter xmlWriter, Collection<KeywordGroup> groups, string category)
+        private static void ProcessCategory(XmlWriter xmlWriter, Collection<KeywordGroup> groups, string category)
         {
-            string[] parts = removeSpecialCategories(category);
+            string[] parts = RemoveSpecialCategories(category);
             if (parts == null)
                 return;
 
             if (parts.Length == 1)
-            {                
+            {
                 foreach (KeywordGroup keywordGroup in groups)
                 {
                     if (keywordGroup.Name == parts[0])
@@ -452,18 +435,18 @@ namespace DomainObjects
             for (int partAddIndex = 1; partAddIndex < parts.Length; partAddIndex++)
                 newGroup.Keywords.Add(parts[partAddIndex]);
 
-            groups.Add(newGroup);            
+            groups.Add(newGroup);
         }
 
-        private static string[] removeSpecialCategories(string category)
+        private static string[] RemoveSpecialCategories(string category)
         {
-            string[] parts = category.Split(new string[] { "," }, StringSplitOptions.None);
+            var parts = category.Split(new string[] { "," }, StringSplitOptions.None);
 
             int specialCategoryCount = 0;
 
             foreach (string part in parts)
             {
-                string specialCategory = getSpecialCategory(part);
+                string specialCategory = GetSpecialCategory(part);
                 if (specialCategory != null)
                     specialCategoryCount++;
             }
@@ -471,12 +454,12 @@ namespace DomainObjects
             if (specialCategoryCount == parts.Length)
                 return (null);
 
-            string[] editedParts = new string[parts.Length - specialCategoryCount];
+            var editedParts = new string[parts.Length - specialCategoryCount];
             int index = 0;
 
             foreach (string part in parts)
             {
-                string specialCategory = getSpecialCategory(part);
+                string specialCategory = GetSpecialCategory(part);
                 if (specialCategory == null)
                 {
                     editedParts[index] = part;
@@ -485,18 +468,18 @@ namespace DomainObjects
 
             }
 
-            return (editedParts);
+            return editedParts;
         }
 
-        private static void processKeywordGroups(XmlWriter xmlWriter)
+        private static void ProcessKeywordGroups(XmlWriter writer)
         {
             int groupNumber = 1;
 
             foreach (KeywordGroup group in groups)
             {
-                xmlWriter.WriteStartElement("KeywordGroup");
-                xmlWriter.WriteAttributeString("uid", "!KeywordGroup!k-" + group.Name.ToLowerInvariant().Replace(' ', '-'));
-                xmlWriter.WriteAttributeString("groupName", "k" + groupNumber);
+                writer.WriteStartElement("KeywordGroup");
+                writer.WriteAttributeString("uid", "!KeywordGroup!k-" + group.Name.ToLowerInvariant().Replace(' ', '-'));
+                writer.WriteAttributeString("groupName", "k" + groupNumber);
 
                 StringBuilder keywordString = new StringBuilder();
                 int keywordNumber = 0;
@@ -510,87 +493,91 @@ namespace DomainObjects
                     keywordNumber++;
                 }
 
-                xmlWriter.WriteAttributeString("keywords", keywordString.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteAttributeString("keywords", keywordString.ToString());
+                writer.WriteEndElement();
 
                 groupNumber++;
             }
         }
 
-        private static void processGuideImages(XmlWriter xmlWriter)
+        private static void ProcessGuideImages(XmlWriter writer)
         {
-            string stationDirectory = Path.Combine(RunParameters.DataDirectory, "Images") + Path.DirectorySeparatorChar;
-            
+            var stationDirectory = Path.Combine(RunParameters.DataDirectory, "Images");
+
             if (Directory.Exists(stationDirectory))
             {
                 stationImages = new Collection<int>();
 
-                DirectoryInfo directoryInfo = new DirectoryInfo(stationDirectory);
+                var directoryInfo = new DirectoryInfo(stationDirectory);
 
-                foreach (FileInfo fileInfo in directoryInfo.GetFiles())
+                foreach (var item in directoryInfo.GetFiles())
                 {
-                    if (fileInfo.Extension.ToLowerInvariant() == ".png")
+                    if (item.Extension.ToLowerInvariant() == ".png")
                     {
-                        string serviceID = fileInfo.Name.Remove(fileInfo.Name.Length - 4);
-
-                        try
+                        if (item.Name.Length > 4)
                         {
-                            stationImages.Add(Int32.Parse(serviceID));
+                            var str = item.Name.Remove(item.Name.Length - 4);
 
-                            xmlWriter.WriteStartElement("GuideImage");
-                            xmlWriter.WriteAttributeString("id", "i" + stationImages.Count);
-                            xmlWriter.WriteAttributeString("uid", "!Image!SID" + serviceID);
-                            xmlWriter.WriteAttributeString("imageUrl", "file://" + fileInfo.FullName);
-                            xmlWriter.WriteEndElement();
+                            if (int.TryParse(str, out int serviceId))
+                            {
+                                stationImages.Add(serviceId);
+
+                                writer.WriteStartElement("GuideImage");
+                                writer.WriteAttributeString("id", "i" + stationImages.Count);
+                                writer.WriteAttributeString("uid", "!Image!SID" + serviceId);
+                                writer.WriteAttributeString("imageUrl", "file://" + item.FullName);
+                                writer.WriteEndElement();
+                            }
                         }
-                        catch (FormatException) { }
-                        catch (OverflowException) { }                        
                     }
                 }
             }
 
-            if (!RunParameters.Instance.LookupImagesInBase)
+            if (RunParameters.Instance.LookupImagesInBase)
             {
-                addLookupImages(xmlWriter, Path.Combine(RunParameters.ImagePath, "Movies"));
-                addLookupImages(xmlWriter, Path.Combine(RunParameters.ImagePath, "TV Series"));
+                AddLookupImages(writer, Path.Combine(RunParameters.ImagePath));
             }
             else
-                addLookupImages(xmlWriter, Path.Combine(RunParameters.ImagePath));
+            {
+                AddLookupImages(writer, Path.Combine(RunParameters.ImagePath, "Movies"));
+                AddLookupImages(writer, Path.Combine(RunParameters.ImagePath, "TV Series"));
+            }
         }
 
-        private static void addLookupImages(XmlWriter xmlWriter, string directory)
+        private static void AddLookupImages(XmlWriter writer, string directory)
         {
             if (Directory.Exists(directory))
             {
                 if (programImages == null)
                     programImages = new Collection<Guid>();
 
-                DirectoryInfo directoryInfo = new DirectoryInfo(directory);
+                var directoryInfo = new DirectoryInfo(directory);
 
-                foreach (FileInfo fileInfo in directoryInfo.GetFiles())
+                foreach (var item in directoryInfo.GetFiles())
                 {
-                    if (fileInfo.Extension.ToLowerInvariant() == ".jpg")
+                    if (item.Extension.ToLowerInvariant() == ".jpg")
                     {
-                        Guid guid = Guid.Parse(fileInfo.Name.Substring(0, fileInfo.Name.Length - 4));
-
-                        try
+                        if (item.Name.Length > 4)
                         {
-                            programImages.Add(guid);
+                            var str = item.Name.Substring(0, item.Name.Length - 4);
 
-                            xmlWriter.WriteStartElement("GuideImage");
-                            xmlWriter.WriteAttributeString("id", "i-" + guid);
-                            xmlWriter.WriteAttributeString("uid", "!Image!" + guid);
-                            xmlWriter.WriteAttributeString("imageUrl", "file://" + fileInfo.FullName);
-                            xmlWriter.WriteEndElement();
+                            if (Guid.TryParse(str, out Guid guid))
+                            {
+                                programImages.Add(guid);
+
+                                writer.WriteStartElement("GuideImage");
+                                writer.WriteAttributeString("id", "i-" + guid);
+                                writer.WriteAttributeString("uid", "!Image!" + guid);
+                                writer.WriteAttributeString("imageUrl", "file://" + item.FullName);
+                                writer.WriteEndElement();
+                            }
                         }
-                        catch (FormatException) { }
-                        catch (OverflowException) { }
                     }
                 }
             }
         }
 
-        private static void processPeople(XmlWriter xmlWriter)
+        private static void ProcessPeople(XmlWriter writer)
         {
             people = new Collection<string>();
 
@@ -603,44 +590,44 @@ namespace DomainObjects
                         if (epgEntry.Cast != null)
                         {
                             foreach (string person in epgEntry.Cast)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
 
                         if (epgEntry.Directors != null)
                         {
                             foreach (string person in epgEntry.Directors)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
 
                         if (epgEntry.Producers != null)
                         {
                             foreach (string person in epgEntry.Producers)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
 
                         if (epgEntry.Writers != null)
                         {
                             foreach (string person in epgEntry.Writers)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
 
                         if (epgEntry.Presenters != null)
                         {
                             foreach (string person in epgEntry.Presenters)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
 
                         if (epgEntry.GuestStars != null)
                         {
                             foreach (string person in epgEntry.GuestStars)
-                                processPerson(xmlWriter, people, person);
+                                ProcessPerson(writer, people, person);
                         }
                     }
                 }
             }
         }
 
-        private static void processPerson(XmlWriter xmlWriter, Collection<string> people, string newPerson)
+        private static void ProcessPerson(XmlWriter writer, Collection<string> people, string newPerson)
         {
             string trimPerson = newPerson.Trim();
 
@@ -652,14 +639,14 @@ namespace DomainObjects
 
             people.Add(trimPerson);
 
-            xmlWriter.WriteStartElement("Person");
-            xmlWriter.WriteAttributeString("id", "prs" + people.Count);
-            xmlWriter.WriteAttributeString("name", trimPerson);
-            xmlWriter.WriteAttributeString("uid", "!Person!" + trimPerson);
-            xmlWriter.WriteEndElement();
+            writer.WriteStartElement("Person");
+            writer.WriteAttributeString("id", "prs" + people.Count);
+            writer.WriteAttributeString("name", trimPerson);
+            writer.WriteAttributeString("uid", "!Person!" + trimPerson);
+            writer.WriteEndElement();
         }
 
-        private static void processSeries(XmlWriter xmlWriter)
+        private static void ProcessSeries(XmlWriter writer)
         {
             series = new Collection<string>();
 
@@ -669,63 +656,63 @@ namespace DomainObjects
                 {
                     foreach (EPGEntry epgEntry in station.EPGCollection)
                     {
-                        string seriesLink = processEpisode(xmlWriter, series, epgEntry);
+                        string seriesLink = ProcessEpisode(series, epgEntry);
                         if (seriesLink != null)
                         {
-                            xmlWriter.WriteStartElement("SeriesInfo");
-                            xmlWriter.WriteAttributeString("id", "si" + series.Count);
-                            xmlWriter.WriteAttributeString("uid", "!Series!" + seriesLink);
-                            xmlWriter.WriteAttributeString("title", epgEntry.EventName);
-                            xmlWriter.WriteAttributeString("shortTitle", epgEntry.EventName);
+                            writer.WriteStartElement("SeriesInfo");
+                            writer.WriteAttributeString("id", "si" + series.Count);
+                            writer.WriteAttributeString("uid", "!Series!" + seriesLink);
+                            writer.WriteAttributeString("title", epgEntry.EventName);
+                            writer.WriteAttributeString("shortTitle", epgEntry.EventName);
 
                             if (epgEntry.SeriesDescription != null)
                             {
-                                xmlWriter.WriteAttributeString("description", epgEntry.SeriesDescription);
-                                xmlWriter.WriteAttributeString("shortDescription", epgEntry.SeriesDescription);
+                                writer.WriteAttributeString("description", epgEntry.SeriesDescription);
+                                writer.WriteAttributeString("shortDescription", epgEntry.SeriesDescription);
                             }
                             else
                             {
-                                xmlWriter.WriteAttributeString("description", epgEntry.EventName);
-                                xmlWriter.WriteAttributeString("shortDescription", epgEntry.EventName);
+                                writer.WriteAttributeString("description", epgEntry.EventName);
+                                writer.WriteAttributeString("shortDescription", epgEntry.EventName);
                             }
 
                             if (epgEntry.SeriesStartDate != null)
-                                xmlWriter.WriteAttributeString("startAirdate", convertDateTimeToString(epgEntry.SeriesStartDate.Value, false));
+                                writer.WriteAttributeString("startAirdate", ConvertDateTimeToString(epgEntry.SeriesStartDate.Value, false));
                             else
-                                xmlWriter.WriteAttributeString("startAirdate", convertDateTimeToString(DateTime.MinValue, false));
+                                writer.WriteAttributeString("startAirdate", ConvertDateTimeToString(DateTime.MinValue, false));
 
                             if (epgEntry.SeriesEndDate != null)
-                                xmlWriter.WriteAttributeString("endAirdate", convertDateTimeToString(epgEntry.SeriesEndDate.Value, false));
+                                writer.WriteAttributeString("endAirdate", ConvertDateTimeToString(epgEntry.SeriesEndDate.Value, false));
                             else
-                                xmlWriter.WriteAttributeString("endAirdate", convertDateTimeToString(DateTime.MinValue, false));
-                            
-                            setGuideImage(xmlWriter, epgEntry);
-       
-                            xmlWriter.WriteEndElement();
+                                writer.WriteAttributeString("endAirdate", ConvertDateTimeToString(DateTime.MinValue, false));
+
+                            SetGuideImage(writer, epgEntry);
+
+                            writer.WriteEndElement();
                         }
                     }
                 }
             }
         }
 
-        private static string processEpisode(XmlWriter xmlWriter, Collection<string> series, EPGEntry epgEntry)
+        private static string ProcessEpisode(ICollection<string> items, EPGEntry entry)
         {
-            string newSeriesLink = getSeriesLink(epgEntry);
-            if (newSeriesLink == null)
-                return (null);
-
-            foreach (string oldSeriesLink in series)
+            string result = GetSeriesLink(entry);
+            if (result != null)
             {
-                if (oldSeriesLink == newSeriesLink)
-                    return (null);
+                foreach (var item in items)
+                {
+                    if (item == result)
+                        return null;
+                }
+
+                items.Add(result);
             }
 
-            series.Add(newSeriesLink);
-
-            return (newSeriesLink);
+            return result;
         }
 
-        private static void processPrograms(XmlWriter xmlWriter)
+        private static void ProcessPrograms(XmlWriter writer)
         {
             if (OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) || OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast))
             {
@@ -740,17 +727,17 @@ namespace DomainObjects
                 if (station.Included)
                 {
                     foreach (EPGEntry epgEntry in station.EPGCollection)
-                    {                        
-                        if (processProgram(xmlWriter, programNumber, epgEntry))
+                    {
+                        if (ProcessProgram(writer, programNumber, epgEntry))
                             programNumber++;
                     }
                 }
             }
         }
 
-        private static bool processProgram(XmlWriter xmlWriter, int programNumber, EPGEntry epgEntry)
+        private static bool ProcessProgram(XmlWriter writer, int programNumber, EPGEntry entry)
         {
-            string uniqueID = getProgramIdentifier(epgEntry);
+            string uniqueID = GetProgramIdentifier(entry);
             if (uniqueID == null)
                 return (false);
 
@@ -760,121 +747,123 @@ namespace DomainObjects
             isKids = false;
             isNews = false;
 
-            xmlWriter.WriteStartElement("Program");
-            xmlWriter.WriteAttributeString("id", "prg" + programNumber);
-            xmlWriter.WriteAttributeString("uid", "!Program!" + uniqueID);
+            writer.WriteStartElement("Program");
+            writer.WriteAttributeString("id", "prg" + programNumber);
+            writer.WriteAttributeString("uid", "!Program!" + uniqueID);
 
-            if (epgEntry.EventName != null)
-                xmlWriter.WriteAttributeString("title", epgEntry.EventName);
+            if (entry.EventName != null)
+                writer.WriteAttributeString("title", entry.EventName);
             else
-                xmlWriter.WriteAttributeString("title", "No Title");
+                writer.WriteAttributeString("title", "No Title");
 
-            if (epgEntry.ShortDescription != null)
-                xmlWriter.WriteAttributeString("description", epgEntry.ShortDescription);
+            if (entry.ShortDescription != null)
+                writer.WriteAttributeString("description", entry.ShortDescription);
             else
             {
-                if (epgEntry.EventName != null)
-                    xmlWriter.WriteAttributeString("description", epgEntry.EventName);
+                if (entry.EventName != null)
+                    writer.WriteAttributeString("description", entry.EventName);
                 else
-                    xmlWriter.WriteAttributeString("description", "No Description");
+                    writer.WriteAttributeString("description", "No Description");
             }
-            
-            if (epgEntry.EventSubTitle != null)
-                xmlWriter.WriteAttributeString("episodeTitle", epgEntry.EventSubTitle);
 
-            if (epgEntry.HasAdult)
-                xmlWriter.WriteAttributeString("hasAdult", "1");
-            if (epgEntry.HasGraphicLanguage)
-                xmlWriter.WriteAttributeString("hasGraphicLanguage", "1");
-            if (epgEntry.HasGraphicViolence)
-                xmlWriter.WriteAttributeString("hasGraphicViolence", "1");
-            if (epgEntry.HasNudity)
-                xmlWriter.WriteAttributeString("hasNudity", "1");
-            if (epgEntry.HasStrongSexualContent)
-                xmlWriter.WriteAttributeString("hasStrongSexualContent", "1");
+            if (entry.EventSubTitle != null)
+                writer.WriteAttributeString("episodeTitle", entry.EventSubTitle);
 
-            if (epgEntry.MpaaParentalRating != null)
+            if (entry.HasAdult)
+                writer.WriteAttributeString("hasAdult", "1");
+            if (entry.HasGraphicLanguage)
+                writer.WriteAttributeString("hasGraphicLanguage", "1");
+            if (entry.HasGraphicViolence)
+                writer.WriteAttributeString("hasGraphicViolence", "1");
+            if (entry.HasNudity)
+                writer.WriteAttributeString("hasNudity", "1");
+            if (entry.HasStrongSexualContent)
+                writer.WriteAttributeString("hasStrongSexualContent", "1");
+
+            if (entry.MpaaParentalRating != null)
             {
-                switch (epgEntry.MpaaParentalRating)
+                switch (entry.MpaaParentalRating)
                 {
                     case "G":
-                        xmlWriter.WriteAttributeString("mpaaRating", "1");
+                        writer.WriteAttributeString("mpaaRating", "1");
                         break;
                     case "PG":
-                        xmlWriter.WriteAttributeString("mpaaRating", "2");
+                        writer.WriteAttributeString("mpaaRating", "2");
                         break;
                     case "PG13":
-                        xmlWriter.WriteAttributeString("mpaaRating", "3");
+                        writer.WriteAttributeString("mpaaRating", "3");
                         break;
                     case "R":
-                        xmlWriter.WriteAttributeString("mpaaRating", "4");
+                        writer.WriteAttributeString("mpaaRating", "4");
                         break;
                     case "NC17":
-                        xmlWriter.WriteAttributeString("mpaaRating", "5");
+                        writer.WriteAttributeString("mpaaRating", "5");
                         break;
                     case "X":
-                        xmlWriter.WriteAttributeString("mpaaRating", "6");
+                        writer.WriteAttributeString("mpaaRating", "6");
                         break;
                     case "NR":
-                        xmlWriter.WriteAttributeString("mpaaRating", "7");
+                        writer.WriteAttributeString("mpaaRating", "7");
                         break;
                     case "AO":
-                        xmlWriter.WriteAttributeString("mpaaRating", "8");
+                        writer.WriteAttributeString("mpaaRating", "8");
                         break;
                     default:
                         break;
                 }
             }
-
-            processCategoryKeywords(xmlWriter, epgEntry.EventCategory.GetDescription(EventCategoryMode.Wmc));
-
-            if (epgEntry.Date != null)
-                xmlWriter.WriteAttributeString("year", epgEntry.Date);
-
-            if (epgEntry.SeasonNumber != -1)
-                xmlWriter.WriteAttributeString("seasonNumber", epgEntry.SeasonNumber.ToString());
-            if (epgEntry.EpisodeNumber != -1)
-                xmlWriter.WriteAttributeString("episodeNumber", epgEntry.EpisodeNumber.ToString());
-
-            if (!OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) && !OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast))
-                xmlWriter.WriteAttributeString("originalAirdate", convertDateTimeToString(epgEntry.PreviousPlayDate, false));
-            else
+            if (entry.EventCategory != null)
             {
-                if (epgEntry.PreviousPlayDate == DateTime.MinValue)
-                    xmlWriter.WriteAttributeString("originalAirdate", convertDateTimeToString(epgEntry.StartTime, false));
-                else
-                    xmlWriter.WriteAttributeString("originalAirdate", convertDateTimeToString(epgEntry.PreviousPlayDate, false));
+                ProcessCategoryKeywords(writer, entry.EventCategory.GetDescription(EventCategoryMode.Wmc));
             }
 
-            processSeries(xmlWriter, epgEntry);
+            if (entry.Date != null)
+                writer.WriteAttributeString("year", entry.Date);
 
-            if (epgEntry.StarRating != null)
+            if (entry.SeasonNumber != -1)
+                writer.WriteAttributeString("seasonNumber", entry.SeasonNumber.ToString());
+            if (entry.EpisodeNumber != -1)
+                writer.WriteAttributeString("episodeNumber", entry.EpisodeNumber.ToString());
+
+            if (OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) == false && OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast) == false)
+                writer.WriteAttributeString("originalAirdate", ConvertDateTimeToString(entry.PreviousPlayDate, false));
+            else
             {
-                switch (epgEntry.StarRating)
+                if (entry.PreviousPlayDate == DateTime.MinValue)
+                    writer.WriteAttributeString("originalAirdate", ConvertDateTimeToString(entry.StartTime, false));
+                else
+                    writer.WriteAttributeString("originalAirdate", ConvertDateTimeToString(entry.PreviousPlayDate, false));
+            }
+
+            ProcessSeries(writer, entry);
+
+            if (entry.StarRating != null)
+            {
+                switch (entry.StarRating)
                 {
                     case "+":
-                        xmlWriter.WriteAttributeString("halfStars", "1");
+                        writer.WriteAttributeString("halfStars", "1");
                         break;
                     case "*":
-                        xmlWriter.WriteAttributeString("halfStars", "2");
+                        writer.WriteAttributeString("halfStars", "2");
                         break;
                     case "*+":
-                        xmlWriter.WriteAttributeString("halfStars", "3");
+                        writer.WriteAttributeString("halfStars", "3");
                         break;
                     case "**":
-                        xmlWriter.WriteAttributeString("halfStars", "4");
+                        writer.WriteAttributeString("halfStars", "4");
                         break;
                     case "**+":
-                        xmlWriter.WriteAttributeString("halfStars", "5");
+                        writer.WriteAttributeString("halfStars", "5");
                         break;
                     case "***":
-                        xmlWriter.WriteAttributeString("halfStars", "6");
+                        writer.WriteAttributeString("halfStars", "6");
                         break;
                     case "***+":
-                        xmlWriter.WriteAttributeString("halfStars", "7");
+                        writer.WriteAttributeString("halfStars", "7");
                         break;
                     case "****":
-                        xmlWriter.WriteAttributeString("halfStars", "8");
+                        writer.WriteAttributeString("halfStars", "8");
                         if (OptionEntry.IsDefined(OptionName.WmcStarSpecial))
                             isSpecial = true;
                         break;
@@ -883,149 +872,151 @@ namespace DomainObjects
                 }
             }
 
-            processCategoryAttributes(xmlWriter);
-            setGuideImage(xmlWriter, epgEntry);
+            ProcessCategoryAttributes(writer);
+            SetGuideImage(writer, entry);
 
-            if (epgEntry.Cast != null && epgEntry.Cast.Count != 0)
-                processCast(xmlWriter, epgEntry.Cast);
+            if (entry.Cast != null && entry.Cast.Count != 0)
+                ProcessCast(writer, entry.Cast);
 
-            if (epgEntry.Directors != null && epgEntry.Directors.Count != 0)
-                processDirectors(xmlWriter, epgEntry.Directors);
+            if (entry.Directors != null && entry.Directors.Count != 0)
+                ProcessDirectors(writer, entry.Directors);
 
-            if (epgEntry.Producers != null && epgEntry.Producers.Count != 0)
-                processProducers(xmlWriter, epgEntry.Producers);
+            if (entry.Producers != null && entry.Producers.Count != 0)
+                ProcessProducers(writer, entry.Producers);
 
-            if (epgEntry.Writers != null && epgEntry.Writers.Count != 0)
-                processWriters(xmlWriter, epgEntry.Writers);
+            if (entry.Writers != null && entry.Writers.Count != 0)
+                ProcessWriters(writer, entry.Writers);
 
-            if (epgEntry.Presenters != null && epgEntry.Presenters.Count != 0)
-                processPresenters(xmlWriter, epgEntry.Presenters);
+            if (entry.Presenters != null && entry.Presenters.Count != 0)
+                ProcessPresenters(writer, entry.Presenters);
 
-            if (epgEntry.GuestStars != null && epgEntry.GuestStars.Count != 0)
-                processGuestStars(xmlWriter, epgEntry.GuestStars);
+            if (entry.GuestStars != null && entry.GuestStars.Count != 0)
+                ProcessGuestStars(writer, entry.GuestStars);
 
-            xmlWriter.WriteEndElement();
+            writer.WriteEndElement();
 
             return (true);
         }
 
-        private static string getProgramIdentifier(EPGEntry epgEntry)
+        private static string GetProgramIdentifier(EPGEntry entry)
         {
-            if (!OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) && !OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast))
-                return (epgEntry.OriginalNetworkID + ":" +
-                        epgEntry.TransportStreamID + ":" +
-                        epgEntry.ServiceID +
-                        getUtcTime(epgEntry.StartTime).ToString()).Replace(" ", "").Replace(":", "").Replace("/", "").Replace(".", "");                
+            if (OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) == false && OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast) == false)
+            {
+                return (entry.OriginalNetworkID + ":"
+                    + entry.TransportStreamID + ":"
+                    + entry.ServiceID
+                    + GetUtcTime(entry.StartTime).ToString()).Replace(" ", "").Replace(":", "").Replace("/", "").Replace(".", "");
+            }
 
             string crcString;
             string mode;
 
             if (OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck))
             {
-                crcString = getWmcProgramIdentifier(epgEntry);
+                crcString = GetWmcProgramIdentifier(entry);
                 mode = "basic";
             }
             else
             {
-                crcString = getWmcProgramIdentifierBroadcast(epgEntry);
+                crcString = GetWmcProgramIdentifierBroadcast(entry);
                 mode = "crids";
             }
-            
-            epgEntry.UniqueIdentifier = Crc.CalculateCRC(crcString).ToString();
 
-            if (programIdentifiers.Contains(epgEntry.UniqueIdentifier))
+            entry.UniqueIdentifier = Crc.CalculateCRC(crcString).ToString();
+
+            if (programIdentifiers.Contains(entry.UniqueIdentifier))
             {
-                string storedTitle = programIdentifierTitles[programIdentifiers.IndexOf(epgEntry.UniqueIdentifier)];
-                if (storedTitle != epgEntry.EventName)
+                string storedTitle = programIdentifierTitles[programIdentifiers.IndexOf(entry.UniqueIdentifier)];
+                if (storedTitle != entry.EventName)
                 {
                     Logger.Instance.Write("<e> Duplicate UID generated for '" + storedTitle + "' and '" +
-                        epgEntry.EventName + "'");
+                        entry.EventName + "'");
                 }
                 return (null);
             }
 
             if (DebugEntry.IsDefined(DebugName.LogPuids))
-                Logger.Instance.Write("Program ID: mode: " + mode + 
-                    " uid: " + epgEntry.UniqueIdentifier + 
+                Logger.Instance.Write("Program ID: mode: " + mode +
+                    " uid: " + entry.UniqueIdentifier +
                     " crc string: " + crcString +
-                    " title: " + (string.IsNullOrWhiteSpace(epgEntry.EventName) ? "No title" : epgEntry.EventName));
-            
-            programIdentifiers.Add(epgEntry.UniqueIdentifier);
-            programIdentifierTitles.Add(epgEntry.EventName);
-            
-            return (epgEntry.UniqueIdentifier);
+                    " title: " + (string.IsNullOrWhiteSpace(entry.EventName) ? "No title" : entry.EventName));
+
+            programIdentifiers.Add(entry.UniqueIdentifier);
+            programIdentifierTitles.Add(entry.EventName);
+
+            return (entry.UniqueIdentifier);
         }
 
-        private static string getWmcProgramIdentifier(EPGEntry epgEntry)
+        private static string GetWmcProgramIdentifier(EPGEntry entry)
         {
-            if (epgEntry.SeasonNumber != -1 && epgEntry.EpisodeNumber != -1)
-                return (epgEntry.EventName + " Season " + epgEntry.SeasonNumber + " Episode " + epgEntry.EpisodeNumber);
+            if (entry.SeasonNumber != -1 && entry.EpisodeNumber != -1)
+                return (entry.EventName + " Season " + entry.SeasonNumber + " Episode " + entry.EpisodeNumber);
             else
-                return (epgEntry.EventName + " + " + epgEntry.ShortDescription);            
+                return (entry.EventName + " + " + entry.ShortDescription);
         }
 
-        private static string getWmcProgramIdentifierBroadcast(EPGEntry epgEntry)
+        private static string GetWmcProgramIdentifierBroadcast(EPGEntry entry)
         {
             string crcString;
 
-            if (!string.IsNullOrEmpty(epgEntry.SeasonCrid) || !string.IsNullOrEmpty(epgEntry.EpisodeCrid))
+            if (!string.IsNullOrEmpty(entry.SeasonCrid) || !string.IsNullOrEmpty(entry.EpisodeCrid))
             {
-                string seasonCrid = !string.IsNullOrEmpty(epgEntry.SeasonCrid) ? epgEntry.SeasonCrid : "n/a";
-                string episodeCrid = !string.IsNullOrEmpty(epgEntry.EpisodeCrid) ? epgEntry.EpisodeCrid : "n/a";
+                string seasonCrid = !string.IsNullOrEmpty(entry.SeasonCrid) ? entry.SeasonCrid : "n/a";
+                string episodeCrid = !string.IsNullOrEmpty(entry.EpisodeCrid) ? entry.EpisodeCrid : "n/a";
 
                 crcString = "Season CRID " + seasonCrid + " Episode CRID " + episodeCrid;
             }
             else
             {
-                if (!string.IsNullOrEmpty(epgEntry.SeriesId) || !string.IsNullOrEmpty(epgEntry.EpisodeId))
+                if (!string.IsNullOrEmpty(entry.SeriesId) || !string.IsNullOrEmpty(entry.EpisodeId))
                 {
-                    string seriesId = !string.IsNullOrEmpty(epgEntry.SeriesId) ? epgEntry.SeriesId : "n/a";
-                    string episodeId = !string.IsNullOrEmpty(epgEntry.EpisodeId) ? epgEntry.EpisodeId : "n/a";
+                    string seriesId = !string.IsNullOrEmpty(entry.SeriesId) ? entry.SeriesId : "n/a";
+                    string episodeId = !string.IsNullOrEmpty(entry.EpisodeId) ? entry.EpisodeId : "n/a";
 
                     crcString = "Series ID " + seriesId + " Episode ID " + episodeId + " " +
-                        (!string.IsNullOrEmpty(epgEntry.ShortDescription) ? epgEntry.ShortDescription : "No Description");
+                        (!string.IsNullOrEmpty(entry.ShortDescription) ? entry.ShortDescription : "No Description");
                 }
                 else
                 {
-                    if (epgEntry.SeasonNumber != -1 || epgEntry.EpisodeNumber != -1)
-                        crcString = epgEntry.EventName + " Season No. " + epgEntry.SeasonNumber + " Episode No. " + epgEntry.EpisodeNumber;
+                    if (entry.SeasonNumber != -1 || entry.EpisodeNumber != -1)
+                        crcString = entry.EventName + " Season No. " + entry.SeasonNumber + " Episode No. " + entry.EpisodeNumber;
                     else
-                        crcString = (!string.IsNullOrEmpty(epgEntry.EventName) ? epgEntry.EventName : "No Name") + " + " +
-                            (!string.IsNullOrEmpty(epgEntry.ShortDescription) ? epgEntry.ShortDescription : "No Description") +
-                            getUtcTime(epgEntry.StartTime).Date.ToString().Replace(" ", "").Replace(":", "").Replace("/", "").Replace(".", "");
+                        crcString = (!string.IsNullOrEmpty(entry.EventName) ? entry.EventName : "No Name") + " + " +
+                            (!string.IsNullOrEmpty(entry.ShortDescription) ? entry.ShortDescription : "No Description") +
+                            GetUtcTime(entry.StartTime).Date.ToString().Replace(" ", "").Replace(":", "").Replace("/", "").Replace(".", "");
                 }
             }
 
-            return (crcString);            
+            return (crcString);
         }
 
-        private static void processCategoryKeywords(XmlWriter xmlWriter, string category)
+        private static void ProcessCategoryKeywords(XmlWriter writer, string category)
         {
             if (string.IsNullOrWhiteSpace(category))
             {
-                xmlWriter.WriteAttributeString("keywords", "");
+                writer.WriteAttributeString("keywords", "");
                 return;
             }
 
-            string[] parts = processSpecialCategories(xmlWriter, category);
+            string[] parts = ProcessSpecialCategories(writer, category);
             if (parts == null)
             {
-                xmlWriter.WriteAttributeString("keywords", "");
+                writer.WriteAttributeString("keywords", "");
                 return;
             }
 
             /*if (parts.Length < 2)
                 return;*/
 
-            StringBuilder keywordString = new StringBuilder();    
+            var keywordString = new StringBuilder();
 
-            int groupNumber = 1;            
+            int groupNumber = 1;
 
             foreach (KeywordGroup group in groups)
             {
                 if (group.Name == parts[0])
-                {                    
-                    keywordString.Append("k" + groupNumber);                    
+                {
+                    keywordString.Append("k" + groupNumber);
 
                     int keywordNumber = groupNumber * 100;
 
@@ -1045,24 +1036,24 @@ namespace DomainObjects
                         }
                     }
 
-                    xmlWriter.WriteAttributeString("keywords", keywordString.ToString());
+                    writer.WriteAttributeString("keywords", keywordString.ToString());
                     return;
                 }
                 groupNumber++;
             }
 
-            xmlWriter.WriteAttributeString("keywords", "");
+            writer.WriteAttributeString("keywords", "");
         }
 
-        private static string[] processSpecialCategories(XmlWriter xmlWriter, string category)
+        private static string[] ProcessSpecialCategories(XmlWriter xmlWriter, string category)
         {
-            Collection<string> specialCategories = new Collection<string>();
+            var specialCategories = new Collection<string>();
 
             string[] parts = category.Split(new string[] { "," }, StringSplitOptions.None);
 
             foreach (string part in parts)
             {
-                string specialCategory = getSpecialCategory(part);
+                string specialCategory = GetSpecialCategory(part);
                 if (specialCategory != null)
                     specialCategories.Add(specialCategory);
             }
@@ -1075,7 +1066,7 @@ namespace DomainObjects
 
             foreach (string part in parts)
             {
-                string specialCategory = getSpecialCategory(part);
+                string specialCategory = GetSpecialCategory(part);
                 if (specialCategory == null)
                 {
                     editedParts[index] = part;
@@ -1087,7 +1078,7 @@ namespace DomainObjects
             return (editedParts);
         }
 
-        private static string getSpecialCategory(string category)
+        private static string GetSpecialCategory(string category)
         {
             switch (category.ToUpperInvariant())
             {
@@ -1111,226 +1102,226 @@ namespace DomainObjects
             }
         }
 
-        private static void addSpecialCategory(Collection<string> specialCategories, string newCategory)
+        private static void AddSpecialCategory(ICollection<string> items, string newCategory)
         {
-            foreach (string oldCategory in specialCategories)
+            foreach (var item in items)
             {
-                if (oldCategory == newCategory)
+                if (item == newCategory)
                     return;
             }
 
-            specialCategories.Add(newCategory);
+            items.Add(newCategory);
         }
 
-        private static void processCast(XmlWriter xmlWriter, Collection<string> cast)
+        private static void ProcessCast(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string actor in cast)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("ActorRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(actor.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("ActorRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processDirectors(XmlWriter xmlWriter, Collection<string> directors)
+        private static void ProcessDirectors(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string director in directors)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("DirectorRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(director.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("DirectorRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processProducers(XmlWriter xmlWriter, Collection<string> producers)
+        private static void ProcessProducers(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string producer in producers)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("ProducerRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(producer.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("ProducerRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processWriters(XmlWriter xmlWriter, Collection<string> writers)
+        private static void ProcessWriters(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string writer in writers)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("WriterRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(writer.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("WriterRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processPresenters(XmlWriter xmlWriter, Collection<string> presenters)
+        private static void ProcessPresenters(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string presenter in presenters)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("HostRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(presenter.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("HostRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processGuestStars(XmlWriter xmlWriter, Collection<string> guestStars)
+        private static void ProcessGuestStars(XmlWriter writer, IEnumerable<string> items)
         {
             if (people == null)
                 return;
 
             int rank = 1;
 
-            foreach (string guestStar in guestStars)
+            foreach (var item in items)
             {
-                xmlWriter.WriteStartElement("GuestActorRole");
-                xmlWriter.WriteAttributeString("person", "prs" + (people.IndexOf(guestStar.Trim()) + 1));
-                xmlWriter.WriteAttributeString("rank", rank.ToString());
-                xmlWriter.WriteEndElement();
+                writer.WriteStartElement("GuestActorRole");
+                writer.WriteAttributeString("person", "prs" + (people.IndexOf(item.Trim()) + 1));
+                writer.WriteAttributeString("rank", rank.ToString());
+                writer.WriteEndElement();
 
                 rank++;
             }
         }
 
-        private static void processSeries(XmlWriter xmlWriter, EPGEntry epgEntry)
+        private static void ProcessSeries(XmlWriter writer, EPGEntry entry)
         {
-            string seriesLink = getSeriesLink(epgEntry);
+            var seriesLink = GetSeriesLink(entry);
             if (seriesLink == null)
                 return;
 
-            foreach (string oldSeriesLink in series)
+            foreach (var oldSeriesLink in series)
             {
                 if (oldSeriesLink == seriesLink)
                 {
-                    xmlWriter.WriteAttributeString("isSeries", "1");
-                    xmlWriter.WriteAttributeString("series", "si" + (series.IndexOf(oldSeriesLink) + 1).ToString());
+                    writer.WriteAttributeString("isSeries", "1");
+                    writer.WriteAttributeString("series", "si" + (series.IndexOf(oldSeriesLink) + 1).ToString());
 
                     return;
                 }
             }
 
-            xmlWriter.WriteAttributeString("isSeries", "0");
+            writer.WriteAttributeString("isSeries", "0");
         }
 
-        private static void processCategoryAttributes(XmlWriter xmlWriter)
+        private static void ProcessCategoryAttributes(XmlWriter writer)
         {
             if (isSpecial)
-                xmlWriter.WriteAttributeString("isSpecial", "1");
+                writer.WriteAttributeString("isSpecial", "1");
             else
-                xmlWriter.WriteAttributeString("isSpecial", "0");
+                writer.WriteAttributeString("isSpecial", "0");
 
             if (isMovie)
-                xmlWriter.WriteAttributeString("isMovie", "1");
+                writer.WriteAttributeString("isMovie", "1");
             else
-                xmlWriter.WriteAttributeString("isMovie", "0");
+                writer.WriteAttributeString("isMovie", "0");
 
             if (isSports)
-                xmlWriter.WriteAttributeString("isSports", "1");
+                writer.WriteAttributeString("isSports", "1");
             else
-                xmlWriter.WriteAttributeString("isSports", "0");
+                writer.WriteAttributeString("isSports", "0");
 
             if (isNews)
-                xmlWriter.WriteAttributeString("isNews", "1");
+                writer.WriteAttributeString("isNews", "1");
             else
-                xmlWriter.WriteAttributeString("isNews", "0");
+                writer.WriteAttributeString("isNews", "0");
 
             if (isKids)
-                xmlWriter.WriteAttributeString("isKids", "1");
+                writer.WriteAttributeString("isKids", "1");
             else
-                xmlWriter.WriteAttributeString("isKids", "0");
+                writer.WriteAttributeString("isKids", "0");
         }
 
-        private static void setGuideImage(XmlWriter xmlWriter, EPGEntry epgEntry)
+        private static void SetGuideImage(XmlWriter writer, EPGEntry entry)
         {
-            if (epgEntry.Poster == null || programImages == null)
+            if (entry.Poster == null || programImages == null)
                 return;
 
             foreach (Guid guid in programImages)
             {
-                if (guid == epgEntry.Poster)
+                if (guid == entry.Poster)
                 {
-                    xmlWriter.WriteAttributeString("guideImage", "i-" + guid);
+                    writer.WriteAttributeString("guideImage", "i-" + guid);
                     break;
                 }
             }
         }
 
-        private static void processAffiliates(XmlWriter xmlWriter)
+        private static void ProcessAffiliates(XmlWriter writer, string importName, string importReference)
         {
-            xmlWriter.WriteStartElement("Affiliate");
-            xmlWriter.WriteAttributeString("name", importName);
-            xmlWriter.WriteAttributeString("uid", "!Affiliate!" + importReference);
-            xmlWriter.WriteEndElement();
+            writer.WriteStartElement("Affiliate");
+            writer.WriteAttributeString("name", importName);
+            writer.WriteAttributeString("uid", "!Affiliate!" + importReference);
+            writer.WriteEndElement();
 
             foreach (TVStation station in RunParameters.Instance.StationCollection)
             {
                 if (station.Included && duplicateStationNames.Contains(station.Name))
                 {
-                    xmlWriter.WriteStartElement("Affiliate");
-                    xmlWriter.WriteAttributeString("name", importName + "-" + station.ServiceID);
-                    xmlWriter.WriteAttributeString("uid", "!Affiliate!" + importReference + "-" + station.ServiceID);
-                    xmlWriter.WriteEndElement();
+                    writer.WriteStartElement("Affiliate");
+                    writer.WriteAttributeString("name", importName + "-" + station.ServiceID);
+                    writer.WriteAttributeString("uid", "!Affiliate!" + importReference + "-" + station.ServiceID);
+                    writer.WriteEndElement();
                 }
             }
         }
 
-        private static void processServices(XmlWriter xmlWriter)
+        private static void ProcessServices(XmlWriter writer, string importReference)
         {
             foreach (TVStation station in RunParameters.Instance.StationCollection)
             {
                 if (station.Included)
                 {
-                    xmlWriter.WriteStartElement("Service");
-                    xmlWriter.WriteAttributeString("id", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
-                    xmlWriter.WriteAttributeString("uid", "!Service!" +
-                        station.OriginalNetworkID + ":" + 
-                        station.TransportStreamID + ":" + 
+                    writer.WriteStartElement("Service");
+                    writer.WriteAttributeString("id", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
+                    writer.WriteAttributeString("uid", "!Service!" +
+                        station.OriginalNetworkID + ":" +
+                        station.TransportStreamID + ":" +
                         station.ServiceID);
-                    xmlWriter.WriteAttributeString("name", string.IsNullOrWhiteSpace(station.NewName) ? station.Name : station.NewName);
-                    xmlWriter.WriteAttributeString("callSign", string.IsNullOrWhiteSpace(station.NewName) ? station.Name : station.NewName);
+                    writer.WriteAttributeString("name", string.IsNullOrWhiteSpace(station.NewName) ? station.Name : station.NewName);
+                    writer.WriteAttributeString("callSign", string.IsNullOrWhiteSpace(station.NewName) ? station.Name : station.NewName);
 
                     if (!duplicateStationNames.Contains(station.Name))
-                        xmlWriter.WriteAttributeString("affiliate", "!Affiliate!" + importReference);
+                        writer.WriteAttributeString("affiliate", "!Affiliate!" + importReference);
                     else
-                        xmlWriter.WriteAttributeString("affiliate", "!Affiliate!" + importReference + "-" + station.ServiceID);
+                        writer.WriteAttributeString("affiliate", "!Affiliate!" + importReference + "-" + station.ServiceID);
 
                     if (stationImages != null)
                     {
@@ -1340,7 +1331,7 @@ namespace DomainObjects
                         {
                             if (imageServiceID == station.ServiceID)
                             {
-                                xmlWriter.WriteAttributeString("logoImage", "i" + imageIndex.ToString());
+                                writer.WriteAttributeString("logoImage", "i" + imageIndex.ToString());
                                 break;
                             }
 
@@ -1348,196 +1339,192 @@ namespace DomainObjects
                         }
                     }
 
-                    xmlWriter.WriteEndElement();
+                    writer.WriteEndElement();
                 }
             }
         }
 
-        private static void processSchedules(XmlWriter xmlWriter)
+        private static void ProcessSchedules(XmlWriter writer)
         {
             int programNumber = 1;
 
-            adjustOldStartTimes();
+            AdjustOldStartTimes();
 
             foreach (TVStation station in RunParameters.Instance.StationCollection)
             {
                 if (station.Included)
                 {
-                    xmlWriter.WriteStartElement("ScheduleEntries");
-                    xmlWriter.WriteAttributeString("service", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
-                    
+                    writer.WriteStartElement("ScheduleEntries");
+                    writer.WriteAttributeString("service", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
+
                     foreach (EPGEntry epgEntry in station.EPGCollection)
                     {
-                        xmlWriter.WriteStartElement("ScheduleEntry");
+                        writer.WriteStartElement("ScheduleEntry");
 
                         if (!OptionEntry.IsDefined(OptionName.UseWmcRepeatCheck) && !OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast))
-                            xmlWriter.WriteAttributeString("program", "prg" + programNumber);
+                            writer.WriteAttributeString("program", "prg" + programNumber);
                         else
-                            xmlWriter.WriteAttributeString("program", "prg" + (programIdentifiers.IndexOf(epgEntry.UniqueIdentifier) + 1));
+                            writer.WriteAttributeString("program", "prg" + (programIdentifiers.IndexOf(epgEntry.UniqueIdentifier) + 1));
 
-                        xmlWriter.WriteAttributeString("startTime", convertDateTimeToString(epgEntry.StartTime, true));
-                        xmlWriter.WriteAttributeString("duration", epgEntry.Duration.TotalSeconds.ToString());
+                        writer.WriteAttributeString("startTime", ConvertDateTimeToString(epgEntry.StartTime, true));
+                        writer.WriteAttributeString("duration", epgEntry.Duration.TotalSeconds.ToString());
 
                         if (epgEntry.VideoQuality != null && epgEntry.VideoQuality.ToLowerInvariant() == "hdtv")
-                            xmlWriter.WriteAttributeString("isHdtv", "true");
+                            writer.WriteAttributeString("isHdtv", "true");
 
                         if (epgEntry.AudioQuality != null)
                         {
                             switch (epgEntry.AudioQuality.ToLowerInvariant())
                             {
                                 case "mono":
-                                    xmlWriter.WriteAttributeString("audioFormat", "1");
+                                    writer.WriteAttributeString("audioFormat", "1");
                                     break;
                                 case "stereo":
-                                    xmlWriter.WriteAttributeString("audioFormat", "2");
+                                    writer.WriteAttributeString("audioFormat", "2");
                                     break;
                                 case "dolby":
                                 case "surround":
-                                    xmlWriter.WriteAttributeString("audioFormat", "3");
+                                    writer.WriteAttributeString("audioFormat", "3");
                                     break;
                                 case "dolby digital":
-                                    xmlWriter.WriteAttributeString("audioFormat", "4");
+                                    writer.WriteAttributeString("audioFormat", "4");
                                     break;
                                 default:
                                     break;
                             }
                         }
 
-                        xmlWriter.WriteEndElement();
+                        writer.WriteEndElement();
 
                         programNumber++;
                     }
 
-                    xmlWriter.WriteEndElement();
+                    writer.WriteEndElement();
                 }
             }
         }
 
-        private static void processLineUps(XmlWriter xmlWriter)
+        private static void ProcessLineUps(XmlWriter writer, string importName)
         {
-            xmlWriter.WriteStartElement("Lineup");
-            xmlWriter.WriteAttributeString("id", "l1");
-            xmlWriter.WriteAttributeString("uid", "!Lineup!" + importName);
-            xmlWriter.WriteAttributeString("name", importName);
-            xmlWriter.WriteAttributeString("primaryProvider", "!MCLineup!MainLineup");
+            writer.WriteStartElement("Lineup");
+            writer.WriteAttributeString("id", "l1");
+            writer.WriteAttributeString("uid", "!Lineup!" + importName);
+            writer.WriteAttributeString("name", importName);
+            writer.WriteAttributeString("primaryProvider", "!MCLineup!MainLineup");
 
-            xmlWriter.WriteStartElement("channels");
+            writer.WriteStartElement("channels");
 
             foreach (TVStation station in RunParameters.Instance.StationCollection)
             {
                 if (station.Included)
                 {
-                    xmlWriter.WriteStartElement("Channel");
+                    writer.WriteStartElement("Channel");
                     if (!DebugEntry.IsDefined(DebugName.WmcNewChannels) && station.WMCUniqueID != null)
-                        xmlWriter.WriteAttributeString("uid", station.WMCUniqueID);
+                        writer.WriteAttributeString("uid", station.WMCUniqueID);
                     else
-                        xmlWriter.WriteAttributeString("uid", "!Channel!EPGCollector!" + station.OriginalNetworkID + ":" +
+                        writer.WriteAttributeString("uid", "!Channel!EPGCollector!" + station.OriginalNetworkID + ":" +
                             station.TransportStreamID + ":" +
                             station.ServiceID);
-                    xmlWriter.WriteAttributeString("lineup", "l1");
-                    xmlWriter.WriteAttributeString("service", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
-                    
+                    writer.WriteAttributeString("lineup", "l1");
+                    writer.WriteAttributeString("service", "s" + (RunParameters.Instance.StationCollection.IndexOf(station) + 1));
+
                     if (OptionEntry.IsDefined(OptionName.AutoMapEpg))
                     {
                         if (station.WMCMatchName != null)
-                            xmlWriter.WriteAttributeString("matchName", station.WMCMatchName);
+                            writer.WriteAttributeString("matchName", station.WMCMatchName);
                     }
 
                     if (station.LogicalChannelNumber != -1)
-                        xmlWriter.WriteAttributeString("number", station.LogicalChannelNumber.ToString());
+                        writer.WriteAttributeString("number", station.LogicalChannelNumber.ToString());
 
-                    xmlWriter.WriteEndElement();
+                    writer.WriteEndElement();
                 }
             }
 
-            xmlWriter.WriteEndElement();
-            xmlWriter.WriteEndElement();
+            writer.WriteEndElement();
+            writer.WriteEndElement();
         }
 
-        private static string runImportUtility(string fileName)
+        private static string RunImportUtility(string fileName)
         {
+            string result = default;
+
             string runDirectory = Path.Combine(Environment.GetEnvironmentVariable("SystemRoot"), "ehome");
             Logger.Instance.Write("Running Windows Media Centre import utility LoadMXF from " + runDirectory);
- 
-            importProcess = new Process();
-
-            importProcess.StartInfo.FileName = Path.Combine(runDirectory, "LoadMXF.exe");
-            importProcess.StartInfo.WorkingDirectory = runDirectory + Path.DirectorySeparatorChar;
-            importProcess.StartInfo.Arguments = @"-v -i " + '"' + fileName + '"';
-            importProcess.StartInfo.UseShellExecute = false;
-            importProcess.StartInfo.CreateNoWindow = true;
-            importProcess.StartInfo.RedirectStandardOutput = true;
-            importProcess.StartInfo.RedirectStandardError = true;
-            importProcess.EnableRaisingEvents = true;
-            importProcess.OutputDataReceived += new DataReceivedEventHandler(importProcessOutputDataReceived);
-            importProcess.ErrorDataReceived += new DataReceivedEventHandler(importProcessErrorDataReceived);
-            importProcess.Exited += new EventHandler(importProcessExited);
 
             try
             {
-                importProcess.Start();
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = Path.Combine(runDirectory, "LoadMXF.exe");
+                    process.StartInfo.WorkingDirectory = runDirectory + Path.DirectorySeparatorChar;
+                    process.StartInfo.Arguments = @"-v -i " + '"' + fileName + '"';
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.ErrorDialog = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
 
-                importProcess.BeginOutputReadLine();
-                importProcess.BeginErrorReadLine();
+                    process.OutputDataReceived += (sender, eventArgs) =>
+                    {
+                        if (eventArgs.Data != null)
+                        {
+                            Logger.Instance.Write("LoadMXF message: " + eventArgs.Data);
+                        }
+                    };
 
-                while (!importExited)
-                    Thread.Sleep(500);
+                    process.ErrorDataReceived += (sender, eventArgs) =>
+                    {
+                        if (eventArgs.Data != null)
+                        {
+                            Logger.Instance.Write("<e> LoadMXF error: " + eventArgs.Data);
+                        }
+                    };
 
-                Logger.Instance.Write("Windows Media Centre import utility LoadMXF has completed: exit code " + importProcess.ExitCode);
-                if (importProcess.ExitCode == 0)
-                    return (null);
-                else
-                    return ("Failed to load Windows Media Centre data: reply code " + importProcess.ExitCode);
+                    if (process.Start() == false)
+                    {
+                        Logger.Instance.Write($"Error starting Windows Media Centre import utility");
+                    }
+                    else
+                    {
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+
+                        process.WaitForExit();
+                    }
+
+                    Logger.Instance.Write("Windows Media Centre import utility LoadMXF has completed: exit code " + process.ExitCode);
+                    if (process.ExitCode != 0)
+                    {
+                        result = "Failed to load Windows Media Centre data: reply code " + process.ExitCode;
+                    }
+                }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 Logger.Instance.Write("<e> Failed to run the Windows Media Centre import utility LoadMXF");
-                Logger.Instance.Write("<e> " + e.Message);
-                return ("Failed to load Windows Media Centre data due to an exception");
+                Logger.Instance.Write("<e> " + ex.Message);
+                result = "Failed to load Windows Media Centre data due to an exception";
             }
+
+            return result;
         }
 
-        private static void importProcessOutputDataReceived(object sender, DataReceivedEventArgs e)
+        private static string ConvertDateTimeToString(DateTime value, bool convertToUtc)
         {
-            if (e.Data == null)
-                return;
+            DateTime temp = (convertToUtc) ? GetUtcTime(value) : value;
 
-            Logger.Instance.Write("LoadMXF message: " + e.Data);
+            return (temp.Date.ToString("yyyy-MM-dd") + "T" +
+                temp.Hour.ToString("00") + ":" +
+                temp.Minute.ToString("00") + ":" +
+                temp.Second.ToString("00"));
         }
 
-        private static void importProcessErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            if (e.Data == null)
-                return;
-
-            Logger.Instance.Write("<e> LoadMXF error: " + e.Data);
-        }
-
-        private static void importProcessExited(object sender, EventArgs e)
-        {
-            importExited = true;
-        }
-
-        private static string convertDateTimeToString(DateTime dateTime, bool convertToUtc)
-        {
-            DateTime utcTime;
-            
-            if (convertToUtc)
-                utcTime = getUtcTime(dateTime);
-            else
-                utcTime = dateTime;
-
-            return (utcTime.Date.ToString("yyyy-MM-dd") + "T" +
-                utcTime.Hour.ToString("00") + ":" +
-                utcTime.Minute.ToString("00") + ":" +
-                utcTime.Second.ToString("00"));            
-        }
-
-        private static DateTime getUtcTime(DateTime dateTime)
+        private static DateTime GetUtcTime(DateTime dateTime)
         {
             try
             {
-                return(TimeZoneInfo.ConvertTimeToUtc(dateTime));
+                return (TimeZoneInfo.ConvertTimeToUtc(dateTime));
             }
             catch (ArgumentException e)
             {
@@ -1545,11 +1532,11 @@ namespace DomainObjects
                 Logger.Instance.Write("<e> " + e.Message);
                 Logger.Instance.Write("<e> Start time will be advanced by 1 hour");
 
-                return(TimeZoneInfo.ConvertTimeToUtc(dateTime.AddHours(1)));
+                return (TimeZoneInfo.ConvertTimeToUtc(dateTime.AddHours(1)));
             }
         }
 
-        private static void adjustOldStartTimes()
+        private static void AdjustOldStartTimes()
         {
             if (!DebugEntry.IsDefined(DebugName.AdjustStartTimes))
                 return;
@@ -1566,71 +1553,71 @@ namespace DomainObjects
             }
         }
 
-        private static string getSeriesLink(EPGEntry epgEntry)
+        private static string GetSeriesLink(EPGEntry entry)
         {
             if (!OptionEntry.IsDefined(OptionName.UseWmcRepeatCheckBroadcast))
-                return (epgEntry.EventName);
+                return (entry.EventName);
 
             string result = null;
 
-            if (!string.IsNullOrEmpty(epgEntry.SeasonCrid))
-                result = getNumber(epgEntry.SeasonCrid);
-            
+            if (!string.IsNullOrEmpty(entry.SeasonCrid))
+                result = GetNumber(entry.SeasonCrid);
+
             if (string.IsNullOrEmpty(result))
             {
-                if (!string.IsNullOrEmpty(epgEntry.SeriesId))
-                    result = getNumber(epgEntry.SeriesId);                
+                if (!string.IsNullOrEmpty(entry.SeriesId))
+                    result = GetNumber(entry.SeriesId);
             }
 
             if (string.IsNullOrEmpty(result))
-                result = epgEntry.EventName;
+                result = entry.EventName;
 
-            return (result);
+            return result;
         }
 
-        private static string getNumber(string text)
+        private static string GetNumber(string text)
         {
             if (text.Trim().Length == 0)
-                return (string.Empty);
+                return string.Empty;
 
-            StringBuilder numericString = new StringBuilder();
+            var builder = new StringBuilder();
 
             foreach (char cridChar in text)
             {
                 if (cridChar >= '0' && cridChar <= '9')
-                    numericString.Append(cridChar);
+                    builder.Append(cridChar);
             }
 
-            if (numericString.Length != 0)
-                return (numericString.ToString());
+            if (builder.Length != 0)
+                return builder.ToString();
             else
-                return (string.Empty);
+                return string.Empty;
         }
 
-        private static string getAssemblyVersion(string fileName)
+        private static string GetAssemblyVersionString(string fileName)
         {
-            string path = Path.Combine(Environment.GetEnvironmentVariable("windir"), Path.Combine("ehome", fileName));
+            var result = string.Empty;
+
+            var path = Path.Combine(Environment.GetEnvironmentVariable("windir"), "ehome", fileName);
 
             try
             {
-                AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
+                var version = AssemblyName.GetAssemblyName(path).Version;
 
-                return (assemblyName.Version.Major + "." +
-                    assemblyName.Version.Minor + "." +
-                    assemblyName.Version.MajorRevision + "." +
-                    assemblyName.Version.MinorRevision);
+                result = version.ToString();
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to get assembly version for " + fileName);
-                Logger.Instance.Write(e.Message);
-                return (string.Empty);
+                Logger.Instance.Write(ex.Message);
             }
+
+            return result;
         }
 
-        private static string getAssemblyPublicKey(string fileName)
+        private static string GetAssemblyPublicKey(string fileName)
         {
-            string path = Path.Combine(Environment.GetEnvironmentVariable("windir"), Path.Combine("ehome", fileName));
+            string path = Path.Combine(Environment.GetEnvironmentVariable("windir"), "ehome", fileName);
 
             try
             {
@@ -1638,32 +1625,30 @@ namespace DomainObjects
 
                 byte[] publicKey = assemblyName.GetPublicKey();
 
-                StringBuilder builder = new StringBuilder();
+                var builder = new StringBuilder();
                 foreach (byte keyByte in publicKey)
+                {
                     builder.Append(keyByte.ToString("x2"));
-
-                return (builder.ToString());
+                }
+                return builder.ToString();
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to get assembly public key for " + fileName);
-                Logger.Instance.Write(e.Message);
-                return (string.Empty);
+                Logger.Instance.Write(ex.Message);
+                return string.Empty;
             }
         }
 
         internal class KeywordGroup
         {
-            internal string Name { get { return(name); } }
-            internal Collection<string> Keywords { get { return (keywords); } }
-
-            private string name;
-            private Collection<string> keywords;
+            internal string Name { get; }
+            internal Collection<string> Keywords { get; }
 
             internal KeywordGroup(string name)
             {
-                this.name = name;
-                keywords = new Collection<string>();
+                Name = name;
+                Keywords = new Collection<string>();
             }
         }
     }

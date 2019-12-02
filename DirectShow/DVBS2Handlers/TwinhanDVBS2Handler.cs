@@ -49,10 +49,10 @@ namespace DirectShow
             captureFilter = filter;
 
             if (filter != null)
-                dvbs2Capable = checkTwinhanInterface();
+                dvbs2Capable = CheckTwinhanInterface();
         }
 
-        private bool checkTwinhanInterface()
+        private bool CheckTwinhanInterface()
         {
             bool success = false;
 
@@ -93,10 +93,7 @@ namespace DirectShow
                             reply = propertySet.Set(THBDA_TUNER, 0, thbdaBuf, thbdaLen, thbdaBuf, thbdaLen);
                             if (reply == 0)
                                 success = true;
-                            Marshal.ReleaseComObject(propertySet);
                         }
-
-                        Marshal.ReleaseComObject(pin);
                     }
                 }
                 finally
@@ -109,7 +106,7 @@ namespace DirectShow
                 Marshal.FreeCoTaskMem(ptrDwBytesReturned);
             }
 
-            return (success);
+            return success;
         }
 
         internal override bool SetDVBS2Parameters(TuningSpec tuningSpec, IBaseFilter tunerFilter, ITuneRequest tuneRequest)

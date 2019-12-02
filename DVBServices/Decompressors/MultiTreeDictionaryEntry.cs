@@ -48,7 +48,7 @@ namespace DVBServices
         private const int escape = 0x01;
 
         private static HuffmanEntry[] table1Roots = new HuffmanEntry[256];
-        private static HuffmanEntry[] table2Roots = new HuffmanEntry[256];        
+        private static HuffmanEntry[] table2Roots = new HuffmanEntry[256];
 
         /// <summary>
         /// Get the decode string.
@@ -62,7 +62,7 @@ namespace DVBServices
         private static Collection<string> encodings;
         private static int singleByteEscapes;
         private static int multiByteEscapes;
-        
+
         /// <summary>
         /// Initialize a new instance of the MultiTreeDictionaryEntry class.
         /// </summary>
@@ -83,7 +83,7 @@ namespace DVBServices
         public static bool Load(string fileName1, string fileName2)
         {
             if (loaded)
-                return (true);
+                return true;
 
             Logger.Instance.Write("Loading Huffman Dictionary 1 from " + fileName1);
             try
@@ -94,7 +94,7 @@ namespace DVBServices
             {
                 Logger.Instance.Write("Huffman Dictionary file " + fileName1 + " not available");
                 Logger.Instance.Write(e.Message);
-                return (false);
+                return false;
             }
 
             Logger.Instance.Write("Loading Huffman Dictionary 2 from " + fileName2);
@@ -106,23 +106,23 @@ namespace DVBServices
             {
                 Logger.Instance.Write("Huffman Dictionary file " + fileName2 + " not available");
                 Logger.Instance.Write(e.Message);
-                return (false);
+                return false;
             }
 
             Logger.Instance.Write("Dictionaries loaded");
 
             loaded = true;
-            return (true);
+            return true;
         }
 
         private static void loadFile(HuffmanEntry[] roots, string filename)
         {
-            FileStream fileStream = new FileStream(filename, FileMode.Open, FileAccess.Read);
-            StreamReader streamReader = new StreamReader(fileStream);
+            var stream = new FileStream(filename, FileMode.Open, FileAccess.Read);
+            var reader = new StreamReader(stream);
 
-            while (!streamReader.EndOfStream)
+            while (!reader.EndOfStream)
             {
-                string line = streamReader.ReadLine();
+                string line = reader.ReadLine();
 
                 if (line != string.Empty && !line.StartsWith("####"))
                 {
@@ -135,12 +135,12 @@ namespace DVBServices
                             roots[rootOffSet] = new HuffmanEntry();
 
                         HuffmanEntry currentEntry = roots[rootOffSet];
-                        string pattern = parts[1];    
+                        string pattern = parts[1];
 
                         for (int index = 0; index < parts[1].Length; index++)
                         {
                             char patternChar = pattern[index];
-                            
+
                             switch (patternChar)
                             {
                                 case '0':
@@ -176,13 +176,13 @@ namespace DVBServices
                                 default:
                                     break;
                             }
-                        }                        
+                        }
                     }
                 }
             }
 
-            streamReader.Close();
-            fileStream.Close();
+            reader.Close();
+            stream.Close();
         }
 
         /// <summary>
@@ -194,9 +194,9 @@ namespace DVBServices
         public static string DecodeData(byte[] byteData, string encoding)
         {
             if (byteData[1] == 1)
-                return(decodeData(byteData, table1Roots, 2, encoding));
+                return decodeData(byteData, table1Roots, 2, encoding);
             else
-                return(decodeData(byteData, table2Roots, 2, encoding));
+                return decodeData(byteData, table2Roots, 2, encoding);
         }
 
         /// <summary>
@@ -209,9 +209,9 @@ namespace DVBServices
         public static string DecodeData(int table, byte[] byteData, string encoding)
         {
             if (table == 1)
-                return (decodeData(byteData, table1Roots, 0, encoding));
+                return decodeData(byteData, table1Roots, 0, encoding);
             else
-                return (decodeData(byteData, table2Roots, 0, encoding));
+                return decodeData(byteData, table2Roots, 0, encoding);
         }
 
         private static string decodeData(byte[] byteData, HuffmanEntry[] roots, int startIndex, string encoding)
@@ -219,7 +219,7 @@ namespace DVBServices
             byte[] decompressedBytes = getByteBuffer(null);
             int decompressedIndex = 0;
 
-            Encoding sourceEncoding = sourceEncoding = Encoding.GetEncoding(encoding);            
+            Encoding sourceEncoding = sourceEncoding = Encoding.GetEncoding(encoding);
 
             if (encodings == null)
                 encodings = new Collection<string>();
@@ -230,7 +230,7 @@ namespace DVBServices
             byte mask = 0x80;
             bool finished = false;
             EscapeCount = 0;
-            
+
             for (int index = startIndex; index < byteData.Length && !finished; index++)
             {
                 byte dataByte = byteData[index];
@@ -244,7 +244,7 @@ namespace DVBServices
                             case stop:
                                 finished = true;
                                 break;
-                            case escape:                                
+                            case escape:
                                 bool escapeDone = false;
 
                                 while (!escapeDone)
@@ -297,7 +297,7 @@ namespace DVBServices
                                         multiByteEscapes++;
                                         EscapeCount++;
                                     }
-                                    
+
                                     while (length > 1)
                                     {
                                         encodedValue = 0x00;
@@ -341,10 +341,10 @@ namespace DVBServices
                                         }
                                     }
                                 }
-                                                                
-                                break;                                
+
+                                break;
                             default:
-                                decompressedBytes = storeDecompressedByte((byte)currentEntry.Value[0], decompressedBytes, ref decompressedIndex);                                                                
+                                decompressedBytes = storeDecompressedByte((byte)currentEntry.Value[0], decompressedBytes, ref decompressedIndex);
                                 currentEntry = roots[(int)currentEntry.Value[0]];
                                 break;
                         }
@@ -373,7 +373,7 @@ namespace DVBServices
                             else
                             {
                                 string outputString = sourceEncoding.GetString(decompressedBytes, 0, decompressedIndex);
-                                
+
                                 Logger.Instance.Write(" ** DECOMPRESSION FAILED **");
                                 Logger.Instance.Write("Original data: " + Utils.ConvertToHex(byteData));
                                 Logger.Instance.Write("Decoded data: " + outputString.ToString());
@@ -390,20 +390,20 @@ namespace DVBServices
 
             if (decompressedIndex != 0)
             {
-                string response = sourceEncoding.GetString(decompressedBytes, 0, decompressedIndex); 
+                string response = sourceEncoding.GetString(decompressedBytes, 0, decompressedIndex);
                 /*if (WasEscaped)
                     Logger.Instance.Write("HD: " + response);*/
 
-                return (response);
+                return response;
             }
             else
-                return (string.Empty);
+                return string.Empty;
         }
 
         private static byte[] storeDecompressedByte(byte decompressedByte, byte[] decompressedBytes, ref int decompressedIndex)
         {
             if (decompressedByte == 0x00)
-                return (decompressedBytes);
+                return decompressedBytes;
 
             byte[] outputBuffer;
 
@@ -415,7 +415,7 @@ namespace DVBServices
             outputBuffer[decompressedIndex] = decompressedByte;
             decompressedIndex++;
 
-            return (outputBuffer);
+            return outputBuffer;
         }
 
         private static byte[] getByteBuffer(byte[] existingBuffer)
@@ -425,47 +425,43 @@ namespace DVBServices
             if (existingBuffer != null)
                 size += existingBuffer.Length;
 
-            byte[] newBuffer = new byte[size];
+            byte[] result = new byte[size];
 
             if (existingBuffer != null)
-                Array.Copy(existingBuffer, newBuffer, existingBuffer.Length);
-
-            return (newBuffer);
+            {
+                Array.Copy(existingBuffer, result, existingBuffer.Length);
+            }
+            return result;
         }
 
         private static char resolveChar(string input)
         {
-            int val = new int();
-            char myChar = input[0]; //default value
+            char result = input[0]; //default value
 
             switch (input.ToUpper())
             {
                 case "START":
-                    myChar = (char)0x00;
+                    result = (char)0x00;
                     break;
                 case "STOP":
-                    myChar = (char)0x02;
+                    result = (char)0x02;
                     break;
                 case "ESCAPE":
-                    myChar = (char)0x01;
+                    result = (char)0x01;
                     break;
                 default:
-                    try
+                    if (input.Length > 2 && input.Substring(0, 2) == "0x")
                     {
-                        if (input.Substring(0, 2) == "0x")
+                        var str = input.Substring(2, input.Length - 2);
+                        if (int.TryParse(str, NumberStyles.HexNumber, null, out int value))
                         {
-                            val = int.Parse(input.Substring(2, input.Length - 2), NumberStyles.AllowHexSpecifier); //ASCII for the input character
+                            result = (char)value;   // ASCII value for the input character
                         }
-                        myChar = (char)val;
-                    }
-                    catch
-                    {
-
                     }
                     break;
             }
 
-            return (myChar);
+            return result;
         }
 
         /// <summary>
@@ -478,13 +474,13 @@ namespace DVBServices
 
             Logger.Instance.WriteSeparator("Huffman Usage");
 
-            StringBuilder text = new StringBuilder();
+            var text = new StringBuilder();
 
-            foreach (string encoding in encodings)
+            foreach (var item in encodings)
             {
                 if (text.Length != 0)
                     text.Append(", ");
-                text.Append(encoding);                
+                text.Append(item);
             }
 
             Logger.Instance.Write("Huffman encodings used: " + text);

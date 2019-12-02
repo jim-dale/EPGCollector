@@ -40,8 +40,8 @@ namespace DVBLogicPlugin
         {
             get
             {
-                System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return (version.Major + "." + version.Minor + "." + version.Build + "." + version.Revision);
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version.ToString();
             }
         }
 
@@ -58,10 +58,10 @@ namespace DVBLogicPlugin
             }
         }        
 
-        private static LockClass lockClass = new LockClass(); 
+        private static object _lock = new object();
         private static PluginController instance;                
         
-        private Collection<PluginMonitor> pluginMonitors;
+        private readonly Collection<PluginMonitor> pluginMonitors;
         private int lastMonitorIdentity;
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace DVBLogicPlugin
         /// </summary>
         public PluginController() 
         {
-            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(unhandledException);
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnhandledException);
 
             Logger.Instance.WriteSeparator("DVB Logic Plugin (Version " + RunParameters.SystemVersion + ")");
 
@@ -89,7 +89,7 @@ namespace DVBLogicPlugin
         /// <returns></returns>
         public int Init(string workingDirectory, string baseDirectory)
         {
-            lock (lockClass)
+            lock (_lock)
             {
                 int endIndex = baseDirectory.LastIndexOf(Path.DirectorySeparatorChar);
                 if (endIndex == -1)
@@ -113,7 +113,7 @@ namespace DVBLogicPlugin
             }
         }
 
-        private void unhandledException(object sender, UnhandledExceptionEventArgs e)
+        private void UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Exception exception = e.ExceptionObject as Exception;
 
@@ -138,7 +138,7 @@ namespace DVBLogicPlugin
         /// <returns>True if successful; false otherwise.</returns>
         public bool StartScan(int monitorIdentity, IntPtr scanInfo)
         {
-            lock (lockClass)
+            lock (_lock)
             {
                 Logger.Instance.Write("Start scan called for plugin monitor " + monitorIdentity);
 
@@ -160,7 +160,7 @@ namespace DVBLogicPlugin
         /// <returns>True if successful; false otherwise.</returns>
         public bool StopScan(int monitorIdentity)
         {
-            lock (lockClass)
+            lock (_lock)
             {
                 Logger.Instance.Write("Stop scan called for plugin monitor " + monitorIdentity);
 
@@ -189,7 +189,7 @@ namespace DVBLogicPlugin
         /// <returns>The status.</returns>
         public int GetScanStatus(int monitorIdentity)
         {
-            lock (lockClass)
+            lock (_lock)
             {
                 foreach (PluginMonitor pluginMonitor in pluginMonitors)
                 {
@@ -211,7 +211,7 @@ namespace DVBLogicPlugin
         /// <returns>The total size of the EPG data in bytes.</returns>
         public int GetEPGData(int monitorIdentity, IntPtr buffer, int bufferSize)
         {
-            lock (lockClass)
+            lock (_lock)
             {
                 Logger.Instance.Write("Get EPG data called for plugin monitor " + monitorIdentity);
                 Logger.Instance.Write("Get EPG data buffer address=" + buffer + " size=" + bufferSize);
@@ -244,7 +244,5 @@ namespace DVBLogicPlugin
                 return (0);
             }
         }
-
-        private class LockClass { }
     }
 }

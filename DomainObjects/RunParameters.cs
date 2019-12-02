@@ -28,6 +28,7 @@ using System.Globalization;
 using System.Security.Principal;
 
 using Microsoft.Win32;
+using System.Collections.Generic;
 
 namespace DomainObjects
 {
@@ -59,16 +60,16 @@ namespace DomainObjects
         /// <summary>
         /// Return true if running under Mono or the command line requests compatability.
         /// </summary>
-        public static bool IsMono 
-        { 
-            get 
+        public static bool IsMono
+        {
+            get
             {
                 Type monoType = Type.GetType("Mono.Runtime");
                 if (monoType != null)
                     return (true);
 
                 return (CommandLine.MonoCompatible);
-            } 
+            }
         }
 
         /// <summary>
@@ -91,7 +92,7 @@ namespace DomainObjects
                     return ("Not Mono environment");
             }
         }
-        
+
         /// <summary>
         /// Return true if running under Wine.
         /// </summary>
@@ -114,8 +115,8 @@ namespace DomainObjects
         {
             get
             {
-                System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return (version.Major + "." + version.Minor + " FP " + Fixpack);
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version.Major + "." + version.Minor + " FP " + Fixpack;
             }
         }
 
@@ -126,8 +127,8 @@ namespace DomainObjects
         {
             get
             {
-                System.Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return (version.Major + "." + version.Minor + "." + version.Build + "." + version.Revision);
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version.ToString();
             }
         }
 
@@ -206,7 +207,7 @@ namespace DomainObjects
                     }
 
                     if (!Directory.Exists(applicationDirectory))
-                        Directory.CreateDirectory(applicationDirectory);                    
+                        Directory.CreateDirectory(applicationDirectory);
                 }
                 return (applicationDirectory);
             }
@@ -584,7 +585,7 @@ namespace DomainObjects
         public Collection<string> LookupNotMovie
         {
             get { return (lookupNotMovie); }
-            set { lookupNotMovie = value; } 
+            set { lookupNotMovie = value; }
         }
 
         /// <summary>
@@ -788,16 +789,13 @@ namespace DomainObjects
         {
             get
             {
-                if (CurrentFrequency.AdvancedRunParamters.ChannelBouquet != -1 ||
-                    OptionEntry.IsDefined(this.Options, OptionName.UseChannelId) ||
-                    OptionEntry.IsDefined(this.Options, OptionName.UseLcn) ||
-                    OptionEntry.IsDefined(this.Options, OptionName.CreateBrChannels) ||
-                    OptionEntry.IsDefined(this.Options, OptionName.CreateSageTvFrq) ||
-                    OptionEntry.IsDefined(this.Options, OptionName.TcRelevantOnly) ||
-                    RunParameters.Instance.ChannelUpdateNumber)
-                    return (true);
-                else
-                    return (false);
+                return (CurrentFrequency.AdvancedRunParamters.ChannelBouquet != -1 
+                    || OptionEntry.IsDefined(this.Options, OptionName.UseChannelId) 
+                    || OptionEntry.IsDefined(this.Options, OptionName.UseLcn) 
+                    || OptionEntry.IsDefined(this.Options, OptionName.CreateBrChannels) 
+                    || OptionEntry.IsDefined(this.Options, OptionName.CreateSageTvFrq) 
+                    || OptionEntry.IsDefined(this.Options, OptionName.TcRelevantOnly) 
+                    || RunParameters.Instance.ChannelUpdateNumber);
             }
         }
 
@@ -808,13 +806,10 @@ namespace DomainObjects
         {
             get
             {
-                if (DebugEntry.IsDefined(DebugName.CreateSatIni) ||
-                    DebugEntry.IsDefined(DebugName.LogEpgLinkage) ||
-                    this.ChannelUpdateEnabled ||
-                    ChannelDataNeeded)
-                    return (true);
-                else
-                    return (false);
+                return DebugEntry.IsDefined(DebugName.CreateSatIni)
+                    || DebugEntry.IsDefined(DebugName.LogEpgLinkage)
+                    || this.ChannelUpdateEnabled
+                    || ChannelDataNeeded;
             }
         }
 
@@ -839,11 +834,11 @@ namespace DomainObjects
         /// </summary>
         public Collection<RepeatExclusion> Exclusions
         {
-            get 
+            get
             {
                 if (exclusions == null)
                     exclusions = new Collection<RepeatExclusion>();
-                return (exclusions); 
+                return (exclusions);
             }
         }
 
@@ -852,12 +847,12 @@ namespace DomainObjects
         /// </summary>
         public Collection<string> PhrasesToIgnore
         {
-            get 
+            get
             {
                 if (phrasesToIgnore == null)
                     phrasesToIgnore = new Collection<string>();
-                return (phrasesToIgnore); 
-            }            
+                return (phrasesToIgnore);
+            }
         }
 
         /// <summary>
@@ -865,12 +860,12 @@ namespace DomainObjects
         /// </summary>
         public Collection<ChannelFilterEntry> ChannelFilters
         {
-            get 
+            get
             {
                 if (channelFilters == null)
                     channelFilters = new Collection<ChannelFilterEntry>();
-                return (channelFilters); 
-            } 
+                return (channelFilters);
+            }
         }
 
         /// <summary>
@@ -878,13 +873,13 @@ namespace DomainObjects
         /// </summary>
         public Collection<TimeOffsetChannel> TimeOffsetChannels
         {
-            get 
+            get
             {
                 if (timeOffsetChannels == null)
                     timeOffsetChannels = new Collection<TimeOffsetChannel>();
-                return (timeOffsetChannels); 
+                return (timeOffsetChannels);
             }
-            
+
         }
 
         /// <summary>
@@ -904,11 +899,11 @@ namespace DomainObjects
         /// </summary>       
         public Collection<TuningFrequency> FrequencyCollection
         {
-            get 
+            get
             {
                 if (frequencyCollection == null)
                     frequencyCollection = new Collection<TuningFrequency>();
-                return (frequencyCollection); 
+                return (frequencyCollection);
             }
         }
 
@@ -928,10 +923,10 @@ namespace DomainObjects
         /// <summary>
         /// Get or set the current tuning frequency.
         /// </summary>
-        public TuningFrequency CurrentFrequency 
+        public TuningFrequency CurrentFrequency
         {
             get { return (currentFrequency); }
-            set { currentFrequency = value; } 
+            set { currentFrequency = value; }
         }
 
         /// <summary>
@@ -962,7 +957,7 @@ namespace DomainObjects
         private Collection<string> satIpUniqueIdentifiers;
         private string outputFileName;
         private string iniFileName = "";
-        private string channelLogoPath;        
+        private string channelLogoPath;
 
         private string bladeRunnerFileName;
         private string areaRegionFileName;
@@ -978,7 +973,7 @@ namespace DomainObjects
         private string eitCarousel;
         private int epgDays = -1;
         private int channelBouquet = -1;
-        private int channelRegion = -1;        
+        private int channelRegion = -1;
         private string countryCode;
         private string characterSet;
         private string inputLanguage;
@@ -998,7 +993,7 @@ namespace DomainObjects
         private string tsFileName;
 
         private string wmcImportName;
-        
+
         private bool movieLookupEnabled;
         private LookupImageType downloadMovieThumbnail;
         private int movieLowTime = 90;
@@ -1121,33 +1116,33 @@ namespace DomainObjects
                         case "OUTPUT":
                             Logger.Instance.Write("Processing ini parameter: " + line);
                             if (parts.Length > 2)
-                                reply = processOutput(parts[1] + ":" + parts[2]);
+                                reply = ProcessOutput(parts[1] + ":" + parts[2]);
                             else
-                                reply = processOutput(parts[1]);
+                                reply = ProcessOutput(parts[1]);
                             break;
                         case "TUNER":
                             Logger.Instance.Write("Processing ini parameter: " + line);
-                            reply = processTuner(parts[1]);
+                            reply = ProcessTuner(parts[1]);
                             break;
                         case "SELECTEDTUNER":
                             Logger.Instance.Write("Processing ini parameter: " + line);
-                            reply = processSelectedTuner(parts[1]);
+                            reply = ProcessSelectedTuner(parts[1]);
                             break;
                         case "SATELLITE":
                             Logger.Instance.Write("Processing ini parameter: " + line);
-                            reply = processSatellite(parts[1]);
+                            reply = ProcessSatellite(parts[1]);
                             break;
                         case "DISH":
                             Logger.Instance.Write("Processing ini parameter: " + line);
-                            reply = processDish(parts[1]);
+                            reply = ProcessDish(parts[1]);
                             break;
                         case "FREQUENCY":
                             currentFrequency = null;
-                            reply = processFrequency(parts[1]);
+                            reply = ProcessFrequency(parts[1]);
                             break;
                         case "SCANNINGFREQUENCY":
                             Logger.Instance.Write("Processing ini parameter: " + line);
-                            reply = processFrequency(parts[1]);
+                            reply = ProcessFrequency(parts[1]);
                             break;
                         case "TIMEOUTS":
                             Logger.Instance.Write("Processing ini parameter: " + line);
@@ -1384,7 +1379,7 @@ namespace DomainObjects
                         case "LOOKUPIGNOREDPHRASESEPARATOR":
                             Logger.Instance.Write("Processing ini parameter: " + line);
                             reply = processLookupIgnoredPhraseSeparator(parts[1]);
-                            break;                        
+                            break;
                         case "MOVIEPHRASESEPARATOR":
                             Logger.Instance.Write("Processing ini parameter: " + line);
                             reply = processMoviePhraseSeparator(parts[1]);
@@ -1510,7 +1505,7 @@ namespace DomainObjects
                             }
                             else
                                 if (!string.IsNullOrWhiteSpace(processLine))
-                                    Logger.Instance.Write("Ignored ini parameter: " + processLine);
+                                Logger.Instance.Write("Ignored ini parameter: " + processLine);
                             break;
                     }
                 }
@@ -1519,12 +1514,12 @@ namespace DomainObjects
             streamReader.Close();
             fileStream.Close();
 
-            processOldParameters();
+            ProcessOldParameters();
 
             return (reply);
         }
 
-        private void processOldParameters()
+        private void ProcessOldParameters()
         {
             if (tsFileName != null)
             {
@@ -1545,7 +1540,7 @@ namespace DomainObjects
             }
 
             bool openTVPresent = false;
-            
+
             foreach (TuningFrequency tuningFrequency in FrequencyCollection)
             {
                 if (tuningFrequency.CollectionType == CollectionType.OpenTV)
@@ -1726,7 +1721,7 @@ namespace DomainObjects
                 OptionEntry.Remove(options, optionName);
         }
 
-        private ExitCode processOutput(string parts)
+        private ExitCode ProcessOutput(string parts)
         {
             if (string.IsNullOrWhiteSpace(parts))
             {
@@ -1736,11 +1731,11 @@ namespace DomainObjects
             }
 
             outputFileName = parts.Trim().Replace("<ApplicationData>", RunParameters.DataDirectory);
-            
+
             return (ExitCode.OK);
         }
 
-        private ExitCode processTuner(string parts)
+        private ExitCode ProcessTuner(string parts)
         {
             if (parts.ToUpperInvariant() == "F")
                 return (ExitCode.OK);
@@ -1794,21 +1789,19 @@ namespace DomainObjects
             return (ExitCode.OK);
         }
 
-        private ExitCode processSelectedTuner(string parts)
+        private ExitCode ProcessSelectedTuner(string parts)
         {
             if (parts.Trim().Length < 3)
             {
-                int selectedTuner = 0;
-
                 try
                 {
-                    selectedTuner = Int32.Parse(parts.Trim());
+                    int selectedTuner = Int32.Parse(parts.Trim());
 
                     if (selectedTuner < 1)
                     {
                         lastError = "INI file format error: A SelectedTuner number is out of range.";
                         Logger.Instance.Write(lastError);
-                        return (ExitCode.ParameterError);
+                        return ExitCode.ParameterError;
                     }
                     else
                     {
@@ -1822,13 +1815,13 @@ namespace DomainObjects
                 {
                     lastError = "INI file format error: A SelectedTuner line parameter is in the wrong format.";
                     Logger.Instance.Write(lastError);
-                    return (ExitCode.ParameterError);
+                    return ExitCode.ParameterError;
                 }
                 catch (OverflowException)
                 {
                     lastError = "INI file format error: A SelectedTuner line parameter is out of range.";
                     Logger.Instance.Write(lastError);
-                    return (ExitCode.ParameterError);
+                    return ExitCode.ParameterError;
                 }
             }
             else
@@ -1839,17 +1832,17 @@ namespace DomainObjects
                     selectedTuners.Add(new SelectedTuner(parts.Trim()));
             }
 
-            return (ExitCode.OK);
+            return ExitCode.OK;
         }
 
-        private ExitCode processSatellite(string parts)
+        private ExitCode ProcessSatellite(string parts)
         {
             string[] parameters = parts.Split(new char[] { ',' });
             if (parameters.Length != 1)
             {
                 lastError = "INI file format error: A Satellite line has the wrong number of parameters (1).";
                 Logger.Instance.Write(lastError);
-                return (ExitCode.ParameterError);
+                return ExitCode.ParameterError;
             }
 
             try
@@ -1867,19 +1860,19 @@ namespace DomainObjects
             {
                 lastError = "INI file format error: A Satellite line parameter has the wrong format.";
                 Logger.Instance.Write(lastError);
-                return (ExitCode.ParameterError);
+                return ExitCode.ParameterError;
             }
             catch (OverflowException)
             {
                 lastError = "INI file format error: A Satellite line parameter is out of range.";
                 Logger.Instance.Write(lastError);
-                return (ExitCode.ParameterError);
+                return ExitCode.ParameterError;
             }
 
-            return (ExitCode.OK);
+            return ExitCode.OK;
         }
 
-        private ExitCode processDish(string parts)
+        private ExitCode ProcessDish(string parts)
         {
             string[] parameters = parts.Split(new char[] { ',' });
             if (parameters.Length < 3 || parameters.Length > 5)
@@ -1929,9 +1922,9 @@ namespace DomainObjects
             return (ExitCode.OK);
         }
 
-        private ExitCode processFrequency(string parts)
+        private ExitCode ProcessFrequency(string parts)
         {
-            string[] parameters = parts.Split(new char[] { ',' });
+            var parameters = parts.Split(new char[] { ',' });
 
             if (currentFrequency == null && parameters.Length == 2)
                 return (processBasicFrequency(parameters));
@@ -2372,7 +2365,7 @@ namespace DomainObjects
                 lastError = "INI file format error: A File Frequency line has the wrong number of parameters (2).";
                 Logger.Instance.Write(lastError);
                 return (ExitCode.ParameterError);
-            }            
+            }
 
             if (currentFrequency == null)
                 currentFrequency = new FileFrequency();
@@ -2416,7 +2409,7 @@ namespace DomainObjects
                         Logger.Instance.Write(lastError);
                         return (ExitCode.ParameterError);
                     }
-                    
+
                     streamFrequency.MulticastSource = parameters[2].Trim();
 
                     if (!string.IsNullOrWhiteSpace(parameters[3]))
@@ -2630,7 +2623,7 @@ namespace DomainObjects
                     {
                         tvStation.NewName = parameters[3].Trim().Replace("%%", ",");
 
-                        TVStation oldStation = TVStation.FindStation(StationCollection, 
+                        TVStation oldStation = TVStation.FindStation(StationCollection,
                             tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);
                         if (oldStation == null)
                             TVStation.AddStation(StationCollection, tvStation);
@@ -2695,7 +2688,7 @@ namespace DomainObjects
                     }
 
                     if (currentFrequency != null)
-                        currentFrequency.AdvancedRunParamters.Options.Add(optionEntry);                        
+                        currentFrequency.AdvancedRunParamters.Options.Add(optionEntry);
                     else
                         options.Add(optionEntry);
                 }
@@ -2773,7 +2766,7 @@ namespace DomainObjects
                     return (ExitCode.ParameterError);
                 }
 
-                traceIDs.Add(traceEntry);                
+                traceIDs.Add(traceEntry);
             }
 
             return (ExitCode.OK);
@@ -3022,7 +3015,7 @@ namespace DomainObjects
                 Logger.Instance.Write(lastError);
                 return (ExitCode.ParameterError);
             }
-            
+
             diseqcIdentity = parts.Trim().ToUpperInvariant();
 
             return (ExitCode.OK);
@@ -3338,7 +3331,7 @@ namespace DomainObjects
                     Logger.Instance.Write(lastError);
                     return (ExitCode.ParameterError);
             }
-            
+
             if (pluginFrequency.Provider == null)
                 pluginFrequency.Provider = new Provider(parameters[1].Replace('+', ','));
 
@@ -3894,7 +3887,7 @@ namespace DomainObjects
         {
             if (string.IsNullOrWhiteSpace(parts.Trim()))
             {
-                lastError = "INI file format error: The LookupMatching line parameter is missing."; 
+                lastError = "INI file format error: The LookupMatching line parameter is missing.";
                 Logger.Instance.Write(lastError);
                 return (ExitCode.ParameterError);
             }
@@ -4482,7 +4475,7 @@ namespace DomainObjects
         {
             if (string.IsNullOrWhiteSpace(parts.Trim()))
             {
-                lastError = "INI file format error: The ChannelUpdateNumber line parameter is missing."; 
+                lastError = "INI file format error: The ChannelUpdateNumber line parameter is missing.";
                 Logger.Instance.Write(lastError);
                 return (ExitCode.ParameterError);
             }
@@ -4851,7 +4844,7 @@ namespace DomainObjects
                 currentFrequency.AdvancedRunParamters.ByteConvertTable = parts.Trim();
             else
                 byteConvertTable = parts.Trim();
-            
+
             return (ExitCode.OK);
         }
 
@@ -4925,20 +4918,20 @@ namespace DomainObjects
                 {
                     if (parameterSet == ParameterSet.Plugin)
                     {
-                        outputPluginFrequencyParameters(streamWriter, FrequencyCollection[0]);
+                        OutputPluginFrequencyParameters(streamWriter, FrequencyCollection[0]);
                         FrequencyCollection[0].AdvancedRunParamters.OutputParameters(streamWriter);
                     }
                 }
 
-                outputStationParameters(streamWriter);
-                outputScanListParameters(streamWriter);
+                OutputStationParameters(streamWriter);
+                OutputScanListParameters(streamWriter);
                 outputTimeOffsetParameters(streamWriter);
-                outputServiceFilterParameters(streamWriter);
-                outputRepeatExclusionParameters(streamWriter);
-                outputLookupParameters(streamWriter);
-                outputChannelUpdateParameters(streamWriter);
-                outputXmltvFileParameters(streamWriter);
-                outputEditParameters(streamWriter);
+                OutputServiceFilterParameters(streamWriter);
+                OutputRepeatExclusionParameters(streamWriter);
+                OutputLookupParameters(streamWriter);
+                OutputChannelUpdateParameters(streamWriter);
+                OutputXmltvFileParameters(streamWriter);
+                OutputEditParameters(streamWriter);
 
                 streamWriter.Close();
                 fileStream.Close();
@@ -4988,7 +4981,7 @@ namespace DomainObjects
             if (sageTVSatelliteNumber != -1)
                 streamWriter.WriteLine("SageTVSatNum=" + sageTVSatelliteNumber);
             if (!string.IsNullOrWhiteSpace(channelLogoPath))
-                streamWriter.WriteLine("ChannelLogoPath=" + channelLogoPath);            
+                streamWriter.WriteLine("ChannelLogoPath=" + channelLogoPath);
 
             if (options.Count != 0)
             {
@@ -5050,726 +5043,784 @@ namespace DomainObjects
             }
         }
 
-        private void outputFrequencyParameters(StreamWriter streamWriter, TuningFrequency tuningFrequency)
+        private void outputFrequencyParameters(StreamWriter writer, TuningFrequency tuningFrequency)
         {
             switch (tuningFrequency.TunerType)
             {
                 case TunerType.Satellite:
-                    outputSatelliteFrequency(streamWriter, tuningFrequency);
+                    OutputSatelliteFrequency(writer, tuningFrequency as SatelliteFrequency);
                     break;
                 case TunerType.Terrestrial:
-                    outputTerrestrialFrequency(streamWriter, tuningFrequency);
+                    OutputTerrestrialFrequency(writer, tuningFrequency as TerrestrialFrequency);
                     break;
                 case TunerType.Cable:
-                    outputCableFrequency(streamWriter, tuningFrequency);
+                    OutputCableFrequency(writer, tuningFrequency as CableFrequency);
                     break;
                 case TunerType.ATSC:
                 case TunerType.ATSCCable:
-                    outputAtscFrequency(streamWriter, tuningFrequency);
+                    OutputAtscFrequency(writer, tuningFrequency as AtscFrequency);
                     break;
                 case TunerType.ClearQAM:
-                    outputClearQamFrequency(streamWriter, tuningFrequency);
+                    OutputClearQamFrequency(writer, tuningFrequency as ClearQamFrequency);
                     break;
                 case TunerType.ISDBS:
-                    outputISDBSatelliteFrequency(streamWriter, tuningFrequency);
+                    OutputISDBSatelliteFrequency(writer, tuningFrequency as ISDBSatelliteFrequency);
                     break;
                 case TunerType.ISDBT:
-                    outputISDBTerrestrialFrequency(streamWriter, tuningFrequency);
+                    OutputISDBTerrestrialFrequency(writer, tuningFrequency as ISDBTerrestrialFrequency);
                     break;
                 case TunerType.File:
-                    outputFileFrequency(streamWriter, tuningFrequency);
+                    OutputFileFrequency(writer, tuningFrequency as FileFrequency);
                     break;
                 case TunerType.Stream:
-                    outputStreamFrequency(streamWriter, tuningFrequency);
+                    OutputStreamFrequency(writer, tuningFrequency as StreamFrequency);
                     break;
                 default:
                     break;
             }
 
-            tuningFrequency.AdvancedRunParamters.OutputParameters(streamWriter);
+            tuningFrequency.AdvancedRunParamters.OutputParameters(writer);
         }
 
-        private void outputSatelliteFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
+        private void OutputSatelliteFrequency(StreamWriter writer, SatelliteFrequency item)
         {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[DVBS]");
+            writer.WriteLine();
+            writer.WriteLine("[DVBS]");
 
-            streamWriter.WriteLine("Satellite=" + (tuningFrequency.Provider as Satellite).Longitude);
+            writer.WriteLine("Satellite=" + (item.Provider as Satellite).Longitude);
 
-            SatelliteFrequency satelliteFrequency = tuningFrequency as SatelliteFrequency;
-
-            if (satelliteFrequency.DiseqcRunParamters.DiseqcSwitch != null)
+            if (item.DiseqcRunParamters.DiseqcSwitch != null)
             {
-                if (!satelliteFrequency.LNBConversion)
-                    streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBSwitchFrequency + "," +
-                        satelliteFrequency.DiseqcRunParamters.DiseqcSwitch);
+                if (item.LNBConversion)
+                {
+                    writer.WriteLine("Dish="
+                        + item.SatelliteDish.LNBLowBandFrequency + ","
+                        + item.SatelliteDish.LNBHighBandFrequency + ","
+                        + item.SatelliteDish.LNBSwitchFrequency + ","
+                        + item.DiseqcRunParamters.DiseqcSwitch + ","
+                        + item.SatelliteDish.LNBType.Type);
+                }
                 else
-                    streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBSwitchFrequency + "," +
-                        satelliteFrequency.DiseqcRunParamters.DiseqcSwitch + "," +
-                        satelliteFrequency.SatelliteDish.LNBType.Type);
+                {
+                    writer.WriteLine("Dish="
+                        + item.SatelliteDish.LNBLowBandFrequency + ","
+                        + item.SatelliteDish.LNBHighBandFrequency + ","
+                        + item.SatelliteDish.LNBSwitchFrequency + ","
+                        + item.DiseqcRunParamters.DiseqcSwitch);
+                }
             }
             else
             {
-                if (!satelliteFrequency.LNBConversion)
-                    streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                        satelliteFrequency.SatelliteDish.LNBSwitchFrequency);
+                if (item.LNBConversion)
+                {
+                    writer.WriteLine("Dish="
+                        + item.SatelliteDish.LNBLowBandFrequency + ","
+                        + item.SatelliteDish.LNBHighBandFrequency + ","
+                        + item.SatelliteDish.LNBSwitchFrequency + ",,"
+                        + item.SatelliteDish.LNBType.Type);
+                }
                 else
-                    streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBSwitchFrequency + ",," +
-                    satelliteFrequency.SatelliteDish.LNBType.Type);
+                {
+                    writer.WriteLine("Dish="
+                        + item.SatelliteDish.LNBLowBandFrequency + ","
+                        + item.SatelliteDish.LNBHighBandFrequency + ","
+                        + item.SatelliteDish.LNBSwitchFrequency);
+                }
             }
 
-            streamWriter.WriteLine("TuningFile=" + satelliteFrequency.Provider + ".xml");
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
 
-            if (satelliteFrequency.Pilot == SignalPilot.Pilot.NotSet && 
-                satelliteFrequency.RollOff == SignalRollOff.RollOff.NotSet &&
-                satelliteFrequency.Modulation == SignalModulation.Modulation.QPSK)
+            if (item.Pilot == SignalPilot.Pilot.NotSet
+                && item.RollOff == SignalRollOff.RollOff.NotSet
+                && item.Modulation == SignalModulation.Modulation.QPSK)
             {
-                streamWriter.WriteLine("ScanningFrequency=" + satelliteFrequency.Frequency + "," +
-                    satelliteFrequency.SymbolRate + "," +
-                    satelliteFrequency.FEC + "," +
-                    satelliteFrequency.Polarization.PolarizationAbbreviation + "," +
-                    satelliteFrequency.CollectionType);
+                writer.WriteLine("ScanningFrequency="
+                    + item.Frequency + ","
+                    + item.SymbolRate + ","
+                    + item.FEC + ","
+                    + item.Polarization.PolarizationAbbreviation + ","
+                    + item.CollectionType);
             }
             else
             {
-                streamWriter.WriteLine("ScanningFrequency=" + satelliteFrequency.Frequency + "," +
-                    satelliteFrequency.SymbolRate + "," +
-                    satelliteFrequency.FEC + "," +
-                    satelliteFrequency.Polarization.PolarizationAbbreviation + "," +
-                    satelliteFrequency.Pilot + "," +
-                    satelliteFrequency.RollOff + "," +
-                    satelliteFrequency.Modulation + "," +
-                    satelliteFrequency.CollectionType);
+                writer.WriteLine("ScanningFrequency="
+                    + item.Frequency + ","
+                    + item.SymbolRate + ","
+                    + item.FEC + ","
+                    + item.Polarization.PolarizationAbbreviation + ","
+                    + item.Pilot + ","
+                    + item.RollOff + ","
+                    + item.Modulation + ","
+                    + item.CollectionType);
             }
 
-            if (satelliteFrequency.SatIpFrontend != -1)
-                streamWriter.WriteLine("SatIPFrontend=" + satelliteFrequency.SatIpFrontend);
-
-            outputSelectedTuners(satelliteFrequency.SelectedTuners, streamWriter);            
-
-            if (satelliteFrequency.DiseqcRunParamters.Options.Count != 0)
+            if (item.SatIpFrontend != -1)
             {
-                streamWriter.Write("DiseqcOption=");
+                writer.WriteLine("SatIPFrontend=" + item.SatIpFrontend);
+            }
+            OutputSelectedTuners(writer, item.SelectedTuners);
+
+            if (item.DiseqcRunParamters.Options.Count != 0)
+            {
+                writer.Write("DiseqcOption=");
 
                 bool first = true;
-
-                foreach (OptionEntry optionEntry in satelliteFrequency.DiseqcRunParamters.Options)
+                foreach (var optionEntry in item.DiseqcRunParamters.Options)
                 {
                     if (!first)
-                        streamWriter.Write(",");
-                    streamWriter.Write(optionEntry.ToString());
+                        writer.Write(",");
+
+                    writer.Write(optionEntry.ToString());
                     first = false;
                 }
 
-                streamWriter.WriteLine();
+                writer.WriteLine();
             }
 
-            if (satelliteFrequency.DiseqcRunParamters.DiseqcHandler != null && satelliteFrequency.DiseqcRunParamters.DiseqcHandler.ToUpperInvariant() != "DEFAULT")
-                streamWriter.WriteLine("DiseqcHandler=" + satelliteFrequency.DiseqcRunParamters.DiseqcHandler);
+            if (item.DiseqcRunParamters.DiseqcHandler != null
+                && item.DiseqcRunParamters.DiseqcHandler.ToUpperInvariant() != "DEFAULT")
+            {
+                writer.WriteLine("DiseqcHandler=" + item.DiseqcRunParamters.DiseqcHandler);
+            }
         }
 
-        private void outputTerrestrialFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
+        private void OutputTerrestrialFrequency(StreamWriter streamWriter, TerrestrialFrequency item)
         {
             streamWriter.WriteLine();
             streamWriter.WriteLine("[DVBT]");
 
-            TerrestrialFrequency terrestrialFrequency = tuningFrequency as TerrestrialFrequency;
+            streamWriter.WriteLine("TuningFile=" + item.Provider + ".xml");
 
-            streamWriter.WriteLine("TuningFile=" + tuningFrequency.Provider + ".xml");
-
-            if (terrestrialFrequency.PlpNumber == -1)
-                streamWriter.WriteLine("ScanningFrequency=" + terrestrialFrequency.Frequency + "," +
-                    terrestrialFrequency.Bandwidth + "," +
-                    terrestrialFrequency.CollectionType);
-            else
-                streamWriter.WriteLine("ScanningFrequency=" + terrestrialFrequency.Frequency + "," +
-                    terrestrialFrequency.Bandwidth + "," +
-                    terrestrialFrequency.PlpNumber + "," +
-                    terrestrialFrequency.CollectionType);
-
-            if (terrestrialFrequency.SatIpFrontend != -1)
-                streamWriter.WriteLine("SatIPFrontend=" + terrestrialFrequency.SatIpFrontend);
-
-            outputSelectedTuners(terrestrialFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputCableFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[DVBC]");
-
-            CableFrequency cableFrequency = tuningFrequency as CableFrequency;
-
-            streamWriter.WriteLine("TuningFile=" + tuningFrequency.Provider + ".xml");
-
-            streamWriter.WriteLine("ScanningFrequency=" + cableFrequency.Frequency + "," +
-                cableFrequency.SymbolRate + "," +
-                cableFrequency.FEC + "," +
-                cableFrequency.Modulation + "," +
-                cableFrequency.CollectionType);
-
-            if (cableFrequency.SatIpFrontend != -1)
-                streamWriter.WriteLine("SatIPFrontend=" + cableFrequency.SatIpFrontend);
-
-            outputSelectedTuners(cableFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputAtscFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[ATSC]");
-
-            AtscFrequency atscFrequency = tuningFrequency as AtscFrequency;
-
-            streamWriter.WriteLine("TuningFile=" + tuningFrequency.Provider + ".xml");
-
-            streamWriter.WriteLine("ScanningFrequency=" + atscFrequency.Frequency + "," +
-                atscFrequency.ChannelNumber + "," +
-                atscFrequency.SymbolRate + "," +
-                atscFrequency.FEC + "," +
-                atscFrequency.Modulation + "," +
-                atscFrequency.CollectionType);
-
-            outputSelectedTuners(atscFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputClearQamFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[CLEARQAM]");
-
-            ClearQamFrequency clearQamFrequency = tuningFrequency as ClearQamFrequency;
-
-            streamWriter.WriteLine("TuningFile=" + tuningFrequency.Provider + ".xml");
-
-            streamWriter.WriteLine("ScanningFrequency=" + clearQamFrequency.Frequency + "," +
-                clearQamFrequency.ChannelNumber + "," +
-                clearQamFrequency.SymbolRate + "," +
-                clearQamFrequency.FEC + "," +
-                clearQamFrequency.Modulation + "," +
-                clearQamFrequency.CollectionType);
-
-            outputSelectedTuners(clearQamFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputISDBSatelliteFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[ISDBS]");
-
-            streamWriter.WriteLine("Satellite=" + (tuningFrequency.Provider as ISDBSatelliteProvider).Longitude);
-
-            ISDBSatelliteFrequency satelliteFrequency = tuningFrequency as ISDBSatelliteFrequency;
-
-            if (satelliteFrequency.DiseqcRunParamters.DiseqcSwitch != null)
-                streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBSwitchFrequency + "," +
-                    satelliteFrequency.DiseqcRunParamters.DiseqcSwitch);
-            else
-                streamWriter.WriteLine("Dish=" + satelliteFrequency.SatelliteDish.LNBLowBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBHighBandFrequency + "," +
-                    satelliteFrequency.SatelliteDish.LNBSwitchFrequency);
-
-            streamWriter.WriteLine("TuningFile=" + satelliteFrequency.Provider + ".xml");
-
-            streamWriter.WriteLine("ScanningFrequency=" + satelliteFrequency.Frequency + "," +
-                satelliteFrequency.SymbolRate + "," +
-                satelliteFrequency.FEC + "," +
-                satelliteFrequency.Polarization.PolarizationAbbreviation + "," +
-                satelliteFrequency.CollectionType);
-
-            outputSelectedTuners(satelliteFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputISDBTerrestrialFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[ISDBT]");
-
-            ISDBTerrestrialFrequency terrestrialFrequency = tuningFrequency as ISDBTerrestrialFrequency;
-
-            streamWriter.WriteLine("TuningFile=" + tuningFrequency.Provider + ".xml");
-
-            streamWriter.WriteLine("ScanningFrequency=" + terrestrialFrequency.ChannelNumber + "," +
-                terrestrialFrequency.Frequency + "," +
-                terrestrialFrequency.Bandwidth + "," +
-                terrestrialFrequency.CollectionType);
-
-            outputSelectedTuners(terrestrialFrequency.SelectedTuners, streamWriter);  
-        }
-
-        private void outputFileFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[FILE]");
-
-            FileFrequency fileFrequency = tuningFrequency as FileFrequency;
-
-            streamWriter.WriteLine("ScanningFrequency=" + fileFrequency.Path + "," +
-                fileFrequency.CollectionType);
-        }
-
-        private void outputStreamFrequency(StreamWriter streamWriter, TuningFrequency tuningFrequency)
-        {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[STREAM]");
-
-            StreamFrequency streamFrequency = tuningFrequency as StreamFrequency;
-
-            streamWriter.WriteLine("ScanningFrequency=" + streamFrequency.IPAddress + "," +
-                streamFrequency.PortNumber + "," +
-                (string.IsNullOrWhiteSpace(streamFrequency.MulticastSource) ? "" : streamFrequency.MulticastSource + ",") +
-                (string.IsNullOrWhiteSpace(streamFrequency.MulticastSource) ? "" : (streamFrequency.MulticastPort == 0 ? "," : streamFrequency.MulticastPort + ",")) +
-                streamFrequency.Protocol + "," +
-                (streamFrequency.Path == null ? "," : streamFrequency.Path + ",") +
-                streamFrequency.CollectionType);
-        }
-
-        private void outputSelectedTuners(Collection<SelectedTuner> selectedTuners, StreamWriter streamWriter)
-        {
-            if (selectedTuners.Count != 0)
+            if (item.PlpNumber == -1)
             {
-                foreach (SelectedTuner tuner in selectedTuners)
+                streamWriter.WriteLine("ScanningFrequency="
+                    + item.Frequency + ","
+                    + item.Bandwidth + ","
+                    + item.CollectionType);
+            }
+            else
+            {
+                streamWriter.WriteLine("ScanningFrequency="
+                    + item.Frequency + ","
+                    + item.Bandwidth + ","
+                    + item.PlpNumber + ","
+                    + item.CollectionType);
+            }
+            if (item.SatIpFrontend != -1)
+            {
+                streamWriter.WriteLine("SatIPFrontend=" + item.SatIpFrontend);
+            }
+
+            OutputSelectedTuners(streamWriter, item.SelectedTuners);
+        }
+
+        private void OutputCableFrequency(StreamWriter writer, CableFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[DVBC]");
+
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.Frequency + ","
+                + item.SymbolRate + ","
+                + item.FEC + ","
+                + item.Modulation + ","
+                + item.CollectionType);
+
+            if (item.SatIpFrontend != -1)
+            {
+                writer.WriteLine("SatIPFrontend=" + item.SatIpFrontend);
+            }
+
+            OutputSelectedTuners(writer, item.SelectedTuners);
+        }
+
+        private void OutputAtscFrequency(StreamWriter writer, AtscFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[ATSC]");
+
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.Frequency + ","
+                + item.ChannelNumber + ","
+                + item.SymbolRate + ","
+                + item.FEC + ","
+                + item.Modulation + ","
+                + item.CollectionType);
+
+            OutputSelectedTuners(writer, item.SelectedTuners);
+        }
+
+        private void OutputClearQamFrequency(StreamWriter writer, ClearQamFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[CLEARQAM]");
+
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
+
+            writer.WriteLine("ScanningFrequency=" + item.Frequency + "," +
+                item.ChannelNumber + "," +
+                item.SymbolRate + "," +
+                item.FEC + "," +
+                item.Modulation + "," +
+                item.CollectionType);
+
+            OutputSelectedTuners(writer, item.SelectedTuners);
+        }
+
+        private void OutputISDBSatelliteFrequency(StreamWriter writer, ISDBSatelliteFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[ISDBS]");
+
+            writer.WriteLine("Satellite=" + (item.Provider as ISDBSatelliteProvider).Longitude);
+
+            if (item.DiseqcRunParamters.DiseqcSwitch == null)
+            {
+                writer.WriteLine("Dish="
+                    + item.SatelliteDish.LNBLowBandFrequency + ","
+                    + item.SatelliteDish.LNBHighBandFrequency + ","
+                    + item.SatelliteDish.LNBSwitchFrequency);
+            }
+            else
+            {
+                writer.WriteLine("Dish="
+                    + item.SatelliteDish.LNBLowBandFrequency + ","
+                    + item.SatelliteDish.LNBHighBandFrequency + ","
+                    + item.SatelliteDish.LNBSwitchFrequency + ","
+                    + item.DiseqcRunParamters.DiseqcSwitch);
+            }
+
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.Frequency + ","
+                + item.SymbolRate + ","
+                + item.FEC + ","
+                + item.Polarization.PolarizationAbbreviation + ","
+                + item.CollectionType);
+
+            OutputSelectedTuners(writer, item.SelectedTuners);
+        }
+
+        private void OutputISDBTerrestrialFrequency(StreamWriter writer, ISDBTerrestrialFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[ISDBT]");
+
+            writer.WriteLine("TuningFile=" + item.Provider + ".xml");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.ChannelNumber + ","
+                + item.Frequency + ","
+                + item.Bandwidth + ","
+                + item.CollectionType);
+
+            OutputSelectedTuners(writer, item.SelectedTuners);
+        }
+
+        private void OutputFileFrequency(StreamWriter writer, FileFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[FILE]");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.Path + ","
+                + item.CollectionType);
+        }
+
+        private void OutputStreamFrequency(StreamWriter writer, StreamFrequency item)
+        {
+            writer.WriteLine();
+            writer.WriteLine("[STREAM]");
+
+            writer.WriteLine("ScanningFrequency="
+                + item.IPAddress + ","
+                + item.PortNumber + ","
+                + (string.IsNullOrWhiteSpace(item.MulticastSource) ? "" : item.MulticastSource + ",")
+                + (string.IsNullOrWhiteSpace(item.MulticastSource) ? "" : (item.MulticastPort == 0 ? "," : item.MulticastPort + ","))
+                + item.Protocol + ","
+                + (item.Path == null ? "," : item.Path + ",")
+                + item.CollectionType);
+        }
+
+        private void OutputSelectedTuners(StreamWriter writer, ICollection<SelectedTuner> items)
+        {
+            if (items.Count != 0)
+            {
+                foreach (var item in items)
                 {
-                    if (!Tuner.TunerCollection[tuner.TunerNumber - 1].IsServerTuner)
-                        streamWriter.WriteLine("SelectedTuner=" + tuner.TunerNumber);
+                    if (Tuner.TunerCollection[item.TunerNumber - 1].IsServerTuner == false)
+                    {
+                        writer.WriteLine("SelectedTuner=" + item.TunerNumber);
+                    }
                     else
-                        streamWriter.WriteLine("SelectedTuner=" + tuner.UniqueIdentity);
+                    {
+                        writer.WriteLine("SelectedTuner=" + item.UniqueIdentity);
+                    }
                 }
             }
         }
 
-        private void outputPluginFrequencyParameters(StreamWriter streamWriter, TuningFrequency tuningFrequency)
+        private void OutputPluginFrequencyParameters(StreamWriter writer, TuningFrequency tuningFrequency)
         {
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[PLUGIN]");
+            writer.WriteLine();
+            writer.WriteLine("[PLUGIN]");
 
             switch (tuningFrequency.TunerType)
             {
                 case TunerType.Satellite:
-                    streamWriter.WriteLine("PluginFrequency=Satellite," + tuningFrequency.Provider.ToString().Replace(',', '+') + "," +
-                        tuningFrequency.Frequency + "," + (tuningFrequency as SatelliteFrequency).Polarization.PolarizationAbbreviation + "," +
-                        tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=Satellite,"
+                        + tuningFrequency.Provider.ToString().Replace(',', '+') + ","
+                        + tuningFrequency.Frequency + ","
+                        + (tuningFrequency as SatelliteFrequency).Polarization.PolarizationAbbreviation + ","
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.Terrestrial:
-                    streamWriter.WriteLine("PluginFrequency=Terrestrial," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=Terrestrial,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.Cable:
-                    streamWriter.WriteLine("PluginFrequency=Cable," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=Cable,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.ATSC:
                 case TunerType.ATSCCable:
-                    streamWriter.WriteLine("PluginFrequency=ATSC," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=ATSC,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.ClearQAM:
-                    streamWriter.WriteLine("PluginFrequency=ClearQAM," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=ClearQAM,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.ISDBS:
-                    streamWriter.WriteLine("PluginFrequency=ISDBS," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=ISDBS,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 case TunerType.ISDBT:
-                    streamWriter.WriteLine("PluginFrequency=ISDBT," + (tuningFrequency.Provider) + "," +
-                        tuningFrequency.Frequency + ",," + tuningFrequency.CollectionType);
+                    writer.WriteLine("PluginFrequency=ISDBT,"
+                        + (tuningFrequency.Provider) + ","
+                        + tuningFrequency.Frequency + ",,"
+                        + tuningFrequency.CollectionType);
                     break;
                 default:
                     break;
             }
         }
 
-        private void outputStationParameters(StreamWriter streamWriter)
+        private void OutputStationParameters(StreamWriter writer)
         {
             if (StationCollection.Count == 0)
                 return;
 
             bool first = true;
 
-            foreach (TVStation station in StationCollection)
+            foreach (var item in StationCollection)
             {
-                if (station.ExcludedByUser || (station.NewName != null && station.NewName.Trim() != string.Empty) || station.LogicalChannelNumber != -1)
+                if (item.ExcludedByUser || string.IsNullOrWhiteSpace(item.NewName) == false || item.LogicalChannelNumber != -1)
                 {
                     if (first)
                     {
-                        streamWriter.WriteLine();
-                        streamWriter.WriteLine("[STATIONS]");
+                        writer.WriteLine();
+                        writer.WriteLine("[STATIONS]");
                         first = false;
                     }
 
-                    streamWriter.Write("Station=" + station.OriginalNetworkID + "," + station.TransportStreamID + "," + station.ServiceID);
+                    writer.Write("Station=" + item.OriginalNetworkID + "," + item.TransportStreamID + "," + item.ServiceID);
 
-                    if (!station.ExcludedByUser)
+                    if (item.ExcludedByUser == false)
                     {
-                        streamWriter.Write("," + station.LogicalChannelNumber);
-                        if (station.NewName != null && station.NewName.Trim() != string.Empty)
-                            streamWriter.Write("," + station.NewName.Replace(",", "%%"));
+                        writer.Write("," + item.LogicalChannelNumber);
+
+                        if (string.IsNullOrWhiteSpace(item.NewName) == false)
+                        {
+                            writer.Write("," + item.NewName.Replace(",", "%%"));
+                        }
                     }
 
-                    streamWriter.WriteLine();
+                    writer.WriteLine();
                 }
             }
         }
 
-        private void outputScanListParameters(StreamWriter streamWriter)
+        private void OutputScanListParameters(StreamWriter writer)
         {
             if (StationCollection.Count == 0)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[SCANLIST]");
+            writer.WriteLine();
+            writer.WriteLine("[SCANLIST]");
 
-            foreach (TVStation station in StationCollection)
-                streamWriter.WriteLine("Scanned=" + station.OriginalNetworkID + "," +
-                    station.TransportStreamID + "," +
-                    station.ServiceID + "," +
-                    station.LogicalChannelNumber + "," +
-                    station.Name.Replace(",", "%%"));
+            foreach (var item in StationCollection)
+            {
+                writer.WriteLine("Scanned="
+                    + item.OriginalNetworkID + ","
+                    + item.TransportStreamID + ","
+                    + item.ServiceID + ","
+                    + item.LogicalChannelNumber + ","
+                    + item.Name.Replace(",", "%%"));
+            }
         }
 
-        private void outputTimeOffsetParameters(StreamWriter streamWriter)
+        private void outputTimeOffsetParameters(StreamWriter writer)
         {
             if (TimeOffsetChannels.Count == 0)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[OFFSETS]");
+            writer.WriteLine();
+            writer.WriteLine("[OFFSETS]");
 
-            foreach (TimeOffsetChannel timeOffsetChannel in TimeOffsetChannels)
-                streamWriter.WriteLine("Offset=" + timeOffsetChannel.SourceChannel.Name.Replace(",", "%%") + "," +
-                    timeOffsetChannel.SourceChannel.OriginalNetworkID + "," +
-                    timeOffsetChannel.SourceChannel.TransportStreamID + "," +
-                    timeOffsetChannel.SourceChannel.ServiceID + "," +
-                    timeOffsetChannel.DestinationChannel.Name.Replace(",", "%%") + "," +
-                    timeOffsetChannel.DestinationChannel.OriginalNetworkID + "," +
-                    timeOffsetChannel.DestinationChannel.TransportStreamID + "," +
-                    timeOffsetChannel.DestinationChannel.ServiceID + "," +
-                    timeOffsetChannel.Offset
-                    );
+            foreach (var item in TimeOffsetChannels)
+            {
+                writer.WriteLine("Offset="
+                    + item.SourceChannel.Name.Replace(",", "%%") + ","
+                    + item.SourceChannel.OriginalNetworkID + ","
+                    + item.SourceChannel.TransportStreamID + ","
+                    + item.SourceChannel.ServiceID + ","
+                    + item.DestinationChannel.Name.Replace(",", "%%") + ","
+                    + item.DestinationChannel.OriginalNetworkID + ","
+                    + item.DestinationChannel.TransportStreamID + ","
+                    + item.DestinationChannel.ServiceID + ","
+                    + item.Offset);
+            }
         }
 
-        private void outputServiceFilterParameters(StreamWriter streamWriter)
+        private void OutputServiceFilterParameters(StreamWriter writer)
         {
             if (ChannelFilters.Count == 0 && maxService == -1)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[SERVICEFILTERS]");
+            writer.WriteLine();
+            writer.WriteLine("[SERVICEFILTERS]");
 
             if (maxService != -1)
-                streamWriter.WriteLine("MaxService=" + maxService);
+                writer.WriteLine("MaxService=" + maxService);
 
-            foreach (ChannelFilterEntry filterEntry in ChannelFilters)
+            foreach (var item in ChannelFilters)
             {
-                streamWriter.WriteLine("IncludeService=" + filterEntry.OriginalNetworkID + "," +
-                    filterEntry.TransportStreamID + "," +
-                    filterEntry.StartServiceID + "," +
-                    filterEntry.EndServiceID + "," +
-                    filterEntry.Frequency);
+                writer.WriteLine("IncludeService="
+                    + item.OriginalNetworkID + ","
+                    + item.TransportStreamID + ","
+                    + item.StartServiceID + ","
+                    + item.EndServiceID + ","
+                    + item.Frequency);
             }
         }
 
-        private void outputRepeatExclusionParameters(StreamWriter streamWriter)
+        private void OutputRepeatExclusionParameters(StreamWriter writer)
         {
             if (Exclusions.Count == 0 && PhrasesToIgnore.Count == 0)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[REPEATEXCLUSIONS]");
+            writer.WriteLine();
+            writer.WriteLine("[REPEATEXCLUSIONS]");
 
-            foreach (RepeatExclusion exclusion in Exclusions)
-                streamWriter.WriteLine("RepeatExclusion=" + exclusion.Title + "," + exclusion.Description);
-
-            foreach (string phrase in PhrasesToIgnore)
-                streamWriter.WriteLine("RepeatPhrase=" + phrase);
+            foreach (var item in Exclusions)
+            {
+                writer.WriteLine("RepeatExclusion=" + item.Title + "," + item.Description);
+            }
+            foreach (var item in PhrasesToIgnore)
+            {
+                writer.WriteLine("RepeatPhrase=" + item);
+            }
         }
 
-        private void outputLookupParameters(StreamWriter streamWriter)
+        private void OutputLookupParameters(StreamWriter writer)
         {
             if (!MovieLookupEnabled && !TVLookupEnabled)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[LOOKUPS]");
+            writer.WriteLine();
+            writer.WriteLine("[LOOKUPS]");
 
             if (MovieLookupEnabled)
             {
-                streamWriter.WriteLine("MovieLookupEnabled=yes");
+                writer.WriteLine("MovieLookupEnabled=yes");
                 if (DownloadMovieThumbnail == LookupImageType.Thumbnail)
-                    streamWriter.WriteLine("MovieImage=thumbnail");
+                {
+                    writer.WriteLine("MovieImage=thumbnail");
+                }
                 else
                 {
-                    if (DownloadMovieThumbnail == LookupImageType.Poster)
-                        streamWriter.WriteLine("MovieImage=poster");
-                    else
-                        streamWriter.WriteLine("MovieImage=none");
+                    var str = (DownloadMovieThumbnail == LookupImageType.Poster) ? "poster" : "none";
+                    writer.WriteLine("MovieImage=" + str);
                 }
-                streamWriter.WriteLine("MovieLowDuration=" + MovieLowTime);
-                streamWriter.WriteLine("MovieHighDuration=" + MovieHighTime);
+                writer.WriteLine("MovieLowDuration=" + MovieLowTime);
+                writer.WriteLine("MovieHighDuration=" + MovieHighTime);
 
                 if (lookupMoviePhrases.Count != 0)
                 {
                     if (moviePhraseSeparator != ",")
-                        streamWriter.WriteLine("MoviePhraseSeparator=" + MoviePhraseSeparator);
+                        writer.WriteLine("MoviePhraseSeparator=" + MoviePhraseSeparator);
 
-                    streamWriter.Write("LookupMoviePhrases=");
+                    writer.Write("LookupMoviePhrases=");
 
                     foreach (string lookupMoviePhrase in lookupMoviePhrases)
                     {
                         if (lookupMoviePhrases.IndexOf(lookupMoviePhrase) == 0)
-                            streamWriter.Write(lookupMoviePhrase);
+                            writer.Write(lookupMoviePhrase);
                         else
-                            streamWriter.Write(MoviePhraseSeparator + lookupMoviePhrase);
+                            writer.Write(MoviePhraseSeparator + lookupMoviePhrase);
                     }
 
-                    streamWriter.WriteLine();
+                    writer.WriteLine();
                 }
 
                 if (lookupNotMovie != null)
                 {
                     foreach (string notMovie in lookupNotMovie)
-                        streamWriter.WriteLine("LookupNotMovie=" + notMovie);
+                        writer.WriteLine("LookupNotMovie=" + notMovie);
                 }
             }
             else
-                streamWriter.WriteLine("MovieLookupEnabled=no");
+            {
+                writer.WriteLine("MovieLookupEnabled=no");
+            }
 
             if (TVLookupEnabled)
             {
-                streamWriter.WriteLine("TVLookupEnabled=yes");
-                
+                writer.WriteLine("TVLookupEnabled=yes");
+
                 switch (DownloadTVThumbnail)
                 {
                     case LookupImageType.Poster:
-                        streamWriter.WriteLine("TVImage=poster");
+                        writer.WriteLine("TVImage=poster");
                         break;
                     case LookupImageType.Banner:
-                        streamWriter.WriteLine("TVImage=banner");
+                        writer.WriteLine("TVImage=banner");
                         break;
                     case LookupImageType.Fanart:
-                        streamWriter.WriteLine("TVImage=fanart");
+                        writer.WriteLine("TVImage=fanart");
                         break;
                     case LookupImageType.SmallPoster:
-                        streamWriter.WriteLine("TVImage=smallposter");
+                        writer.WriteLine("TVImage=smallposter");
                         break;
                     case LookupImageType.SmallFanart:
-                        streamWriter.WriteLine("TVImage=smallfanart");
+                        writer.WriteLine("TVImage=smallfanart");
                         break;
                     case LookupImageType.None:
-                        streamWriter.WriteLine("TVImage=none");
+                        writer.WriteLine("TVImage=none");
                         break;
-                    default:                    
-                        streamWriter.WriteLine("TVImage=none");
+                    default:
+                        writer.WriteLine("TVImage=none");
                         break;
                 }
             }
             else
-                streamWriter.WriteLine("TVLookupEnabled=no");
+            {
+                writer.WriteLine("TVLookupEnabled=no");
+            }
 
-            streamWriter.WriteLine("LookupMatching=" + LookupMatching);
+            writer.WriteLine("LookupMatching=" + LookupMatching);
 
             if (LookupMatching == MatchMethod.Nearest && lookupMatchThreshold != 0)
-                streamWriter.WriteLine("LookupMatchThreshold=" + LookupMatchThreshold);
+                writer.WriteLine("LookupMatchThreshold=" + LookupMatchThreshold);
 
             if (LookupNotFound)
-                streamWriter.WriteLine("LookupNotFound=yes");
+                writer.WriteLine("LookupNotFound=yes");
             else
-                streamWriter.WriteLine("LookupNotFound=no");
+                writer.WriteLine("LookupNotFound=no");
 
             if (LookupReload)
-                streamWriter.WriteLine("LookupReload=yes");
+                writer.WriteLine("LookupReload=yes");
             else
-                streamWriter.WriteLine("LookupReload=no");
+                writer.WriteLine("LookupReload=no");
 
             if (LookupIgnoreCategories)
-                streamWriter.WriteLine("LookupIgnoreCategories=yes");
+                writer.WriteLine("LookupIgnoreCategories=yes");
             else
-                streamWriter.WriteLine("LookupIgnoreCategories=no");
+                writer.WriteLine("LookupIgnoreCategories=no");
 
             if (LookupProcessAsTVSeries)
-                streamWriter.WriteLine("LookupProcessAsTVSeries=yes");
+                writer.WriteLine("LookupProcessAsTVSeries=yes");
             else
-                streamWriter.WriteLine("LookupProcessAsTVSeries=no");
+                writer.WriteLine("LookupProcessAsTVSeries=no");
 
-            streamWriter.WriteLine("LookupErrors=" + LookupErrorLimit);
-            streamWriter.WriteLine("LookupTimeLimit=" + LookupTimeLimit);
+            writer.WriteLine("LookupErrors=" + LookupErrorLimit);
+            writer.WriteLine("LookupTimeLimit=" + LookupTimeLimit);
 
             if (lookupIgnoredPhrases.Count != 0)
             {
                 if (lookupIgnoredPhraseSeparator != ",")
-                    streamWriter.WriteLine("LookupIgnoredPhraseSeparator=" + LookupIgnoredPhraseSeparator);
+                    writer.WriteLine("LookupIgnoredPhraseSeparator=" + LookupIgnoredPhraseSeparator);
 
-                streamWriter.Write("LookupIgnoredPhrases=");
+                writer.Write("LookupIgnoredPhrases=");
 
                 foreach (string lookupIgnoredPhrase in lookupIgnoredPhrases)
                 {
                     if (lookupIgnoredPhrases.IndexOf(lookupIgnoredPhrase) == 0)
-                        streamWriter.Write(lookupIgnoredPhrase);
+                        writer.Write(lookupIgnoredPhrase);
                     else
-                        streamWriter.Write(LookupIgnoredPhraseSeparator + lookupIgnoredPhrase);
+                        writer.Write(LookupIgnoredPhraseSeparator + lookupIgnoredPhrase);
                 }
 
-                streamWriter.WriteLine();
+                writer.WriteLine();
             }
 
             if (lookupImagePath != null)
-                streamWriter.WriteLine("LookupImagePath=" + LookupImagePath);
+                writer.WriteLine("LookupImagePath=" + LookupImagePath);
             if (lookupXmltvImageTagPath != null)
-                streamWriter.WriteLine("LookupXmltvImageTagPath=" + LookupXmltvImageTagPath);
+                writer.WriteLine("LookupXmltvImageTagPath=" + LookupXmltvImageTagPath);
 
             if (LookupImageNameTitle)
-                streamWriter.WriteLine("LookupImageNameTitle=yes");
+                writer.WriteLine("LookupImageNameTitle=yes");
             else
-                streamWriter.WriteLine("LookupImageNameTitle=no");
+                writer.WriteLine("LookupImageNameTitle=no");
 
             if (LookupImagesInBase)
-                streamWriter.WriteLine("LookupImagesInBase=yes");
+                writer.WriteLine("LookupImagesInBase=yes");
             else
-                streamWriter.WriteLine("LookupImagesInBase=no");
+                writer.WriteLine("LookupImagesInBase=no");
         }
 
-        private void outputChannelUpdateParameters(StreamWriter streamWriter)
+        private void OutputChannelUpdateParameters(StreamWriter writer)
         {
             if (!ChannelUpdateEnabled)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[CHANNELUPDATE]");
+            writer.WriteLine();
+            writer.WriteLine("[CHANNELUPDATE]");
 
-            streamWriter.WriteLine("ChannelUpdateEnabled=yes");
+            writer.WriteLine("ChannelUpdateEnabled=yes");
 
             switch (ChannelMergeMethod)
             {
                 case ChannelMergeMethod.Name:
-                    streamWriter.WriteLine("ChannelMergeMethod=name");
+                    writer.WriteLine("ChannelMergeMethod=name");
                     break;
                 case ChannelMergeMethod.Number:
-                    streamWriter.WriteLine("ChannelMergeMethod=number");
+                    writer.WriteLine("ChannelMergeMethod=number");
                     break;
                 case ChannelMergeMethod.NameNumber:
-                    streamWriter.WriteLine("ChannelMergeMethod=namenumber");
+                    writer.WriteLine("ChannelMergeMethod=namenumber");
                     break;
                 case ChannelMergeMethod.None:
-                    streamWriter.WriteLine("ChannelMergeMethod=none");
+                    writer.WriteLine("ChannelMergeMethod=none");
                     break;
                 default:
-                    streamWriter.WriteLine("ChannelMergeMethod=none");
+                    writer.WriteLine("ChannelMergeMethod=none");
                     break;
             }
 
             switch (ChannelEPGScanner)
             {
                 case ChannelEPGScanner.EPGCollector:
-                    streamWriter.WriteLine("ChannelEPGScanner=EPG Collector");
+                    writer.WriteLine("ChannelEPGScanner=EPG Collector");
                     break;
                 case ChannelEPGScanner.EITScanner:
-                    streamWriter.WriteLine("ChannelEPGScanner=EIT Scanner");
+                    writer.WriteLine("ChannelEPGScanner=EIT Scanner");
                     break;
                 case ChannelEPGScanner.None:
-                    streamWriter.WriteLine("ChannelEPGScanner=none");
+                    writer.WriteLine("ChannelEPGScanner=none");
                     break;
                 case ChannelEPGScanner.Default:
-                    streamWriter.WriteLine("ChannelEPGScanner=default");
+                    writer.WriteLine("ChannelEPGScanner=default");
                     break;
                 case ChannelEPGScanner.Xmltv:
-                    streamWriter.WriteLine("ChannelEPGScanner=xmltv");
+                    writer.WriteLine("ChannelEPGScanner=xmltv");
                     break;
                 default:
-                    streamWriter.WriteLine("ChannelEPGScanner=none");
+                    writer.WriteLine("ChannelEPGScanner=none");
                     break;
             }
 
             if (ChannelChildLock)
-                streamWriter.WriteLine("ChannelChildLock=yes");
+                writer.WriteLine("ChannelChildLock=yes");
             else
-                streamWriter.WriteLine("ChannelChildLock=no");
+                writer.WriteLine("ChannelChildLock=no");
 
-            streamWriter.WriteLine("ChannelEPGScanInterval=" + ChannelEPGScanInterval.ToString());
+            writer.WriteLine("ChannelEPGScanInterval=" + ChannelEPGScanInterval.ToString());
 
             if (ChannelLogNetworkMap)
-                streamWriter.WriteLine("ChannelLogNetworkMap=yes");
+                writer.WriteLine("ChannelLogNetworkMap=yes");
             else
-                streamWriter.WriteLine("ChannelLogNetworkMap=no");
+                writer.WriteLine("ChannelLogNetworkMap=no");
 
             if (ChannelReloadData)
-                streamWriter.WriteLine("ChannelReloadData=yes");
+                writer.WriteLine("ChannelReloadData=yes");
             else
-                streamWriter.WriteLine("ChannelReloadData=no");
+                writer.WriteLine("ChannelReloadData=no");
 
             if (ChannelUpdateNumber)
-                streamWriter.WriteLine("ChannelUpdateNumber=yes");
+                writer.WriteLine("ChannelUpdateNumber=yes");
             else
-                streamWriter.WriteLine("ChannelUpdateNumber=no");
+                writer.WriteLine("ChannelUpdateNumber=no");
 
             if (ChannelExcludeNew)
-                streamWriter.WriteLine("ChannelExcludeNew=yes");
+                writer.WriteLine("ChannelExcludeNew=yes");
             else
-                streamWriter.WriteLine("ChannelExcludeNew=no");
+                writer.WriteLine("ChannelExcludeNew=no");
         }
 
-        private void outputXmltvFileParameters(StreamWriter streamWriter)
+        private void OutputXmltvFileParameters(StreamWriter writer)
         {
             if (importFiles == null || importFiles.Count == 0)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[XMLTVIMPORT]");
+            writer.WriteLine();
+            writer.WriteLine("[XMLTVIMPORT]");
 
-            foreach (ImportFileSpec xmltvFileSpec in importFiles)
+            foreach (var item in importFiles)
             {
-                streamWriter.WriteLine("XmltvImportFile=" + xmltvFileSpec.FileName + "," +
-                    xmltvFileSpec.Precedence.ToString() + "," +
-                    (xmltvFileSpec.Language == null ? string.Empty : xmltvFileSpec.Language.Code) + "," +
-                    xmltvFileSpec.NoLookup + "," +
-                    xmltvFileSpec.IdFormat + "," +
-                    xmltvFileSpec.AppendOnly + "," +
-                    (xmltvFileSpec.TimeZone == null ? "local" : xmltvFileSpec.TimeZone));                
+                writer.WriteLine("XmltvImportFile="
+                    + item.FileName + ","
+                    + item.Precedence.ToString() + ","
+                    + (item.Language == null ? string.Empty : item.Language.Code) + ","
+                    + item.NoLookup + ","
+                    + item.IdFormat + ","
+                    + item.AppendOnly + ","
+                    + (item.TimeZone == null ? "local" : item.TimeZone));
             }
 
             if (importChannelChanges != null)
             {
-                foreach (ImportChannelChange channelChange in importChannelChanges)
+                foreach (var item in importChannelChanges)
                 {
-                    if (channelChange.NewName != null)
+                    if (item.NewName != null)
                     {
-                        streamWriter.WriteLine("XmltvChannelChange=" + channelChange.DisplayName + "," +
-                            channelChange.ChannelNumber + "," +
-                            channelChange.Excluded.ToString() + "," +
-                            channelChange.NewName);
+                        writer.WriteLine("XmltvChannelChange="
+                            + item.DisplayName + ","
+                            + item.ChannelNumber + ","
+                            + item.Excluded.ToString() + ","
+                            + item.NewName);
                     }
                     else
                     {
-                        streamWriter.WriteLine("XmltvChannelChange=" + channelChange.DisplayName + "," +
-                            channelChange.ChannelNumber + "," +
-                            channelChange.Excluded.ToString());
+                        writer.WriteLine("XmltvChannelChange="
+                            + item.DisplayName + ","
+                            + item.ChannelNumber + ","
+                            + item.Excluded.ToString());
                     }
                 }
             }
         }
 
-        private void outputEditParameters(StreamWriter streamWriter)
+        private void OutputEditParameters(StreamWriter writer)
         {
             if (editSpecs == null || editSpecs.Count == 0)
                 return;
 
-            streamWriter.WriteLine();
-            streamWriter.WriteLine("[EDITSPECS]");
+            writer.WriteLine();
+            writer.WriteLine("[EDITSPECS]");
 
-            foreach (EditSpec editSpec in editSpecs)
+            foreach (var item in editSpecs)
             {
                 string replacementMode;
 
-                switch (editSpec.ReplacementMode)
+                switch (item.ReplacementMode)
                 {
                     case TextReplacementMode.TextOnly:
                         replacementMode = "Text";
@@ -5788,12 +5839,13 @@ namespace DomainObjects
                         break;
                 }
 
-                streamWriter.WriteLine("EditSpec=" + editSpec.Text + "," + 
-                    editSpec.ReplacementText + "," +
-                    editSpec.ApplyToTitles + "," + 
-                    editSpec.ApplyToDescriptions + "," + 
-                    editSpec.Location + "," +
-                    replacementMode);
+                writer.WriteLine("EditSpec="
+                    + item.Text + ","
+                    + item.ReplacementText + ","
+                    + item.ApplyToTitles + ","
+                    + item.ApplyToDescriptions + ","
+                    + item.Location + ","
+                    + replacementMode);
             }
         }
 
@@ -5803,191 +5855,209 @@ namespace DomainObjects
         /// <returns>A new instance with the same properties as the current instance.</returns>
         public RunParameters Clone()
         {
-            RunParameters newParameters = new RunParameters(parameterSet, runType);
+            var result = new RunParameters(parameterSet, runType);
 
             if (parameterSet == ParameterSet.Collector)
             {
                 if (selectedTuners != null)
                 {
-                    newParameters.selectedTuners = new Collection<SelectedTuner>();
-                    foreach (SelectedTuner tuner in selectedTuners)
-                        newParameters.selectedTuners.Add(new SelectedTuner(tuner.TunerNumber, tuner.UniqueIdentity));
+                    result.selectedTuners = new Collection<SelectedTuner>();
+                    foreach (var item in selectedTuners)
+                    {
+                        result.selectedTuners.Add(new SelectedTuner(item.TunerNumber, item.UniqueIdentity));
+                    }
                 }
             }
 
-            newParameters.outputFileName = outputFileName;
-            newParameters.wmcImportName = wmcImportName;
-            newParameters.dvbviewerIPAddress = dvbviewerIPAddress;
-            newParameters.frequencyTimeout = frequencyTimeout;
-            newParameters.lockTimeout = lockTimeout;
-            newParameters.repeats = repeats;
-            newParameters.bufferSize = bufferSize;
-            newParameters.bufferFills = bufferFills;
-            newParameters.timeZone = timeZone;
-            newParameters.nextTimeZone = nextTimeZone;
-            newParameters.nextTimeZoneChange = nextTimeZoneChange;
-            newParameters.timeZoneSet = timeZoneSet;
-            
-            newParameters.bladeRunnerFileName = bladeRunnerFileName;
-            newParameters.areaRegionFileName = areaRegionFileName;
-            newParameters.sageTVFileName = sageTVFileName;
-            newParameters.sageTVSatelliteNumber = sageTVSatelliteNumber;
+            result.outputFileName = outputFileName;
+            result.wmcImportName = wmcImportName;
+            result.dvbviewerIPAddress = dvbviewerIPAddress;
+            result.frequencyTimeout = frequencyTimeout;
+            result.lockTimeout = lockTimeout;
+            result.repeats = repeats;
+            result.bufferSize = bufferSize;
+            result.bufferFills = bufferFills;
+            result.timeZone = timeZone;
+            result.nextTimeZone = nextTimeZone;
+            result.nextTimeZoneChange = nextTimeZoneChange;
+            result.timeZoneSet = timeZoneSet;
 
-            newParameters.channelLogoPath = channelLogoPath;            
+            result.bladeRunnerFileName = bladeRunnerFileName;
+            result.areaRegionFileName = areaRegionFileName;
+            result.sageTVFileName = sageTVFileName;
+            result.sageTVSatelliteNumber = sageTVSatelliteNumber;
+
+            result.channelLogoPath = channelLogoPath;
 
             if (options != null)
             {
-                newParameters.options = new Collection<OptionEntry>();
-                foreach (OptionEntry optionEntry in options)
-                    newParameters.options.Add(optionEntry.Clone());
+                result.options = new Collection<OptionEntry>();
+                foreach (var item in options)
+                {
+                    result.options.Add(item.Clone());
+                }
             }
 
             if (traceIDs != null)
             {
-                newParameters.traceIDs = new Collection<TraceEntry>();
-                foreach (TraceEntry traceEntry in traceIDs)
-                    newParameters.traceIDs.Add(traceEntry.Clone());
+                result.traceIDs = new Collection<TraceEntry>();
+                foreach (var item in traceIDs)
+                {
+                    result.traceIDs.Add(item.Clone());
+                }
             }
 
             if (debugIDs != null)
             {
-                newParameters.debugIDs = new Collection<DebugEntry>();
-                foreach (DebugEntry debugEntry in debugIDs)
-                    newParameters.debugIDs.Add(debugEntry.Clone());
+                result.debugIDs = new Collection<DebugEntry>();
+                foreach (var item in debugIDs)
+                {
+                    result.debugIDs.Add(item.Clone());
+                }
             }
 
-            newParameters.diseqcIdentity = diseqcIdentity;
-            
-            foreach (TVStation station in StationCollection)
-                newParameters.StationCollection.Add(station.Clone());
+            result.diseqcIdentity = diseqcIdentity;
 
-            foreach (TuningFrequency frequency in FrequencyCollection)
-                newParameters.FrequencyCollection.Add(frequency.Clone());
-
-            foreach (TimeOffsetChannel oldOffset in TimeOffsetChannels)
+            foreach (var item in StationCollection)
             {
-                TimeOffsetChannel newOffset = new TimeOffsetChannel(oldOffset.SourceChannel, oldOffset.DestinationChannel, oldOffset.Offset);
-                newParameters.TimeOffsetChannels.Add(newOffset);
+                result.StationCollection.Add(item.Clone());
             }
-
-            foreach (ChannelFilterEntry oldFilterEntry in ChannelFilters)
+            foreach (var item in FrequencyCollection)
             {
-                ChannelFilterEntry newFilterEntry = new ChannelFilterEntry(oldFilterEntry.Frequency, oldFilterEntry.OriginalNetworkID,
-                    oldFilterEntry.TransportStreamID, oldFilterEntry.StartServiceID, oldFilterEntry.EndServiceID);
-
-                newParameters.ChannelFilters.Add(newFilterEntry);
+                result.FrequencyCollection.Add(item.Clone());
             }
-
-            foreach (RepeatExclusion oldRepeatExclusion in Exclusions)
+            foreach (var item in TimeOffsetChannels)
             {
-                RepeatExclusion newRepeatExclusion = new RepeatExclusion(oldRepeatExclusion.Title, oldRepeatExclusion.Description);
-                newParameters.Exclusions.Add(newRepeatExclusion);
+                var newItem = new TimeOffsetChannel(item.SourceChannel, item.DestinationChannel, item.Offset);
+                result.TimeOffsetChannels.Add(newItem);
             }
-            
-            foreach (string oldPhrase in PhrasesToIgnore)
-                newParameters.PhrasesToIgnore.Add(oldPhrase);
+            foreach (var item in ChannelFilters)
+            {
+                var newItem = new ChannelFilterEntry(item.Frequency, item.OriginalNetworkID,
+                    item.TransportStreamID, item.StartServiceID, item.EndServiceID);
 
-            newParameters.MaxService = maxService;
+                result.ChannelFilters.Add(newItem);
+            }
+            foreach (var item in Exclusions)
+            {
+                var newItem = new RepeatExclusion(item.Title, item.Description);
+                result.Exclusions.Add(newItem);
+            }
+            foreach (var item in PhrasesToIgnore)
+            {
+                result.PhrasesToIgnore.Add(item);
+            }
 
-            newParameters.LookupErrorLimit = lookupErrorLimit;
-            newParameters.LookupNotFound = lookupNotFound;
-            newParameters.LookupReload = lookupReload;
-            newParameters.LookupIgnoreCategories = lookupIgnoreCategories;
-            newParameters.LookupProcessAsTVSeries = lookupProcessAsTVSeries;
-            newParameters.LookupMatching = lookupMatching;
-            newParameters.LookupMatchThreshold = lookupMatchThreshold;
-            newParameters.LookupTimeLimit = lookupTimeLimit;
-            newParameters.MovieLookupEnabled = movieLookupEnabled;
-            newParameters.DownloadMovieThumbnail = downloadMovieThumbnail;
-            newParameters.MovieLowTime = movieLowTime;
-            newParameters.MovieHighTime = movieHighTime;
-            newParameters.TVLookupEnabled = tvLookupEnabled;
-            newParameters.DownloadTVThumbnail = downloadTVThumbnail;
-            newParameters.LookupIgnoredPhraseSeparator = lookupIgnoredPhraseSeparator;
-            newParameters.MoviePhraseSeparator = moviePhraseSeparator;
+            result.MaxService = maxService;
+
+            result.LookupErrorLimit = lookupErrorLimit;
+            result.LookupNotFound = lookupNotFound;
+            result.LookupReload = lookupReload;
+            result.LookupIgnoreCategories = lookupIgnoreCategories;
+            result.LookupProcessAsTVSeries = lookupProcessAsTVSeries;
+            result.LookupMatching = lookupMatching;
+            result.LookupMatchThreshold = lookupMatchThreshold;
+            result.LookupTimeLimit = lookupTimeLimit;
+            result.MovieLookupEnabled = movieLookupEnabled;
+            result.DownloadMovieThumbnail = downloadMovieThumbnail;
+            result.MovieLowTime = movieLowTime;
+            result.MovieHighTime = movieHighTime;
+            result.TVLookupEnabled = tvLookupEnabled;
+            result.DownloadTVThumbnail = downloadTVThumbnail;
+            result.LookupIgnoredPhraseSeparator = lookupIgnoredPhraseSeparator;
+            result.MoviePhraseSeparator = moviePhraseSeparator;
 
             if (lookupNotMovie != null)
             {
-                newParameters.lookupNotMovie = new Collection<string>();
-                foreach (string notMovie in lookupNotMovie)
-                    newParameters.LookupNotMovie.Add(notMovie);
+                result.lookupNotMovie = new Collection<string>();
+                foreach (var item in lookupNotMovie)
+                {
+                    result.LookupNotMovie.Add(item);
+                }
             }
 
             if (lookupIgnoredPhrases != null)
             {
-                newParameters.lookupIgnoredPhrases = new Collection<string>();
-                foreach (string lookupIgnoredPhrase in lookupIgnoredPhrases)
-                    newParameters.lookupIgnoredPhrases.Add(lookupIgnoredPhrase);
+                result.lookupIgnoredPhrases = new Collection<string>();
+                foreach (var item in lookupIgnoredPhrases)
+                {
+                    result.lookupIgnoredPhrases.Add(item);
+                }
             }
 
             if (lookupMoviePhrases != null)
             {
-                newParameters.lookupMoviePhrases = new Collection<string>();
-                foreach (string lookupMoviePhrase in lookupMoviePhrases)
-                    newParameters.lookupMoviePhrases.Add(lookupMoviePhrase);
+                result.lookupMoviePhrases = new Collection<string>();
+                foreach (var item in lookupMoviePhrases)
+                {
+                    result.lookupMoviePhrases.Add(item);
+                }
             }
 
-            newParameters.LookupImagePath = lookupImagePath;
-            newParameters.LookupXmltvImageTagPath = lookupXmltvImageTagPath;
-            
-            newParameters.ChannelUpdateEnabled = channelUpdateEnabled;
-            newParameters.ChannelMergeMethod = channelMergeMethod;
-            newParameters.ChannelEPGScanner = channelEPGScanner;
-            newParameters.ChannelChildLock = channelChildLock;
-            newParameters.ChannelLogNetworkMap = channelLogNetworkMap;
-            newParameters.ChannelEPGScanInterval = channelEPGScanInterval;
-            newParameters.ChannelReloadData = channelReloadData;
-            newParameters.ChannelUpdateNumber = channelUpdateNumber;
-            newParameters.ChannelExcludeNew = channelExcludeNew;
+            result.LookupImagePath = lookupImagePath;
+            result.LookupXmltvImageTagPath = lookupXmltvImageTagPath;
+
+            result.ChannelUpdateEnabled = channelUpdateEnabled;
+            result.ChannelMergeMethod = channelMergeMethod;
+            result.ChannelEPGScanner = channelEPGScanner;
+            result.ChannelChildLock = channelChildLock;
+            result.ChannelLogNetworkMap = channelLogNetworkMap;
+            result.ChannelEPGScanInterval = channelEPGScanInterval;
+            result.ChannelReloadData = channelReloadData;
+            result.ChannelUpdateNumber = channelUpdateNumber;
+            result.ChannelExcludeNew = channelExcludeNew;
 
             if (importFiles != null)
             {
-                newParameters.ImportFiles = new Collection<ImportFileSpec>();
+                result.ImportFiles = new Collection<ImportFileSpec>();
 
-                foreach (ImportFileSpec oldSpec in importFiles)
+                foreach (var item in importFiles)
                 {
-                    ImportFileSpec newSpec = new ImportFileSpec(oldSpec.FileName);
-                    newSpec.Language = oldSpec.Language;
-                    newSpec.Precedence = oldSpec.Precedence;
-                    newSpec.NoLookup = oldSpec.NoLookup;
-                    newSpec.AppendOnly = oldSpec.AppendOnly;
-                    newSpec.IdFormat = oldSpec.IdFormat;
+                    var newItem = new ImportFileSpec(item.FileName);
 
-                    newParameters.ImportFiles.Add(newSpec);
+                    newItem.Language = item.Language;
+                    newItem.Precedence = item.Precedence;
+                    newItem.NoLookup = item.NoLookup;
+                    newItem.AppendOnly = item.AppendOnly;
+                    newItem.IdFormat = item.IdFormat;
+
+                    result.ImportFiles.Add(newItem);
                 }
             }
 
             if (importChannelChanges != null)
             {
-                newParameters.ImportChannelChanges = new Collection<ImportChannelChange>();
+                result.ImportChannelChanges = new Collection<ImportChannelChange>();
 
-                foreach (ImportChannelChange oldChange in importChannelChanges)
+                foreach (var item in importChannelChanges)
                 {
-                    ImportChannelChange newChange = new ImportChannelChange(oldChange.DisplayName);
-                    newChange.ChannelNumber = oldChange.ChannelNumber;
-                    newChange.Excluded = oldChange.Excluded;
-                    newChange.NewName = oldChange.NewName;
+                    var newItem = new ImportChannelChange(item.DisplayName);
 
-                    newParameters.ImportChannelChanges.Add(newChange);
+                    newItem.ChannelNumber = item.ChannelNumber;
+                    newItem.Excluded = item.Excluded;
+                    newItem.NewName = item.NewName;
+
+                    result.ImportChannelChanges.Add(newItem);
                 }
             }
 
             if (editSpecs != null)
             {
-                newParameters.EditSpecs = new Collection<EditSpec>();
+                result.EditSpecs = new Collection<EditSpec>();
 
-                foreach (EditSpec oldSpec in editSpecs)
+                foreach (var item in editSpecs)
                 {
-                    EditSpec newSpec = new EditSpec(oldSpec.Text, oldSpec.Location, oldSpec.ReplacementText);
-                    newSpec.ApplyToTitles = oldSpec.ApplyToTitles;
-                    newSpec.ApplyToDescriptions = oldSpec.ApplyToDescriptions;
-                    newSpec.ReplacementMode = oldSpec.ReplacementMode;
+                    var newItem = new EditSpec(item.Text, item.Location, item.ReplacementText);
 
-                    newParameters.EditSpecs.Add(newSpec);
+                    newItem.ApplyToTitles = item.ApplyToTitles;
+                    newItem.ApplyToDescriptions = item.ApplyToDescriptions;
+                    newItem.ReplacementMode = item.ReplacementMode;
+
+                    result.EditSpecs.Add(newItem);
                 }
             }
 
-            return (newParameters);
+            return result;
         }
 
         /// <summary>
@@ -6017,7 +6087,7 @@ namespace DomainObjects
                 return (DataState.Changed);
 
             if (channelLogoPath != oldParameters.channelLogoPath)
-                return (DataState.Changed);            
+                return (DataState.Changed);
 
             if (maxService != oldParameters.MaxService)
                 return (DataState.Changed);
@@ -6092,7 +6162,7 @@ namespace DomainObjects
             {
                 if (!FrequencyCollection[index].EqualTo(oldParameters.FrequencyCollection[index], EqualityLevel.Entirely))
                     return (DataState.Changed);
-            }            
+            }
 
             if (StationCollection.Count != oldParameters.StationCollection.Count)
                 return (DataState.Changed);
@@ -6104,15 +6174,15 @@ namespace DomainObjects
 
                 if (newStation.OriginalNetworkID != oldStation.OriginalNetworkID ||
                     newStation.TransportStreamID != oldStation.TransportStreamID ||
-                    newStation.ServiceID != oldStation.ServiceID || 
+                    newStation.ServiceID != oldStation.ServiceID ||
                     !newStation.EqualTo(oldStation))
-                        return(DataState.Changed);
+                    return (DataState.Changed);
             }
 
             if (TimeOffsetChannels.Count != oldParameters.TimeOffsetChannels.Count)
                 return (DataState.Changed);
 
-            for (int index = 0; index < TimeOffsetChannels.Count; index++)                    
+            for (int index = 0; index < TimeOffsetChannels.Count; index++)
             {
                 TimeOffsetChannel newOffset = TimeOffsetChannels[index];
                 TimeOffsetChannel oldOffset = oldParameters.TimeOffsetChannels[index];
@@ -6121,7 +6191,7 @@ namespace DomainObjects
                     oldOffset.DestinationChannel.Name != newOffset.DestinationChannel.Name ||
                     oldOffset.Offset != newOffset.Offset)
                     return (DataState.Changed);
-            }            
+            }
 
             if (ChannelFilters.Count != oldParameters.ChannelFilters.Count)
                 return (DataState.Changed);
@@ -6130,7 +6200,7 @@ namespace DomainObjects
             {
                 ChannelFilterEntry newFilterEntry = ChannelFilters[index];
                 ChannelFilterEntry oldFilterEntry = oldParameters.ChannelFilters[index];
-                
+
                 if (oldFilterEntry.OriginalNetworkID != newFilterEntry.OriginalNetworkID ||
                     oldFilterEntry.TransportStreamID != newFilterEntry.TransportStreamID ||
                     oldFilterEntry.StartServiceID != newFilterEntry.StartServiceID ||
@@ -6138,7 +6208,7 @@ namespace DomainObjects
                     oldFilterEntry.Frequency != newFilterEntry.Frequency)
                     return (DataState.Changed);
             }
-            
+
             if (Exclusions.Count != oldParameters.Exclusions.Count)
                 return (DataState.Changed);
 
@@ -6146,16 +6216,16 @@ namespace DomainObjects
             {
                 RepeatExclusion newExclusion = Exclusions[index];
                 RepeatExclusion oldExclusion = oldParameters.Exclusions[index];
-                    
+
                 if (oldExclusion.Title != newExclusion.Title ||
                     oldExclusion.Description != newExclusion.Description)
                     return (DataState.Changed);
-            }            
+            }
 
             if (PhrasesToIgnore.Count != oldParameters.PhrasesToIgnore.Count)
                 return (DataState.Changed);
 
-            for (int index = 0; index < PhrasesToIgnore.Count; index++ )
+            for (int index = 0; index < PhrasesToIgnore.Count; index++)
             {
                 if (oldParameters.PhrasesToIgnore[index] != PhrasesToIgnore[index])
                     return (DataState.Changed);
@@ -6175,7 +6245,7 @@ namespace DomainObjects
                 lookupReload != oldParameters.LookupReload ||
                 lookupIgnoreCategories != oldParameters.LookupIgnoreCategories ||
                 lookupProcessAsTVSeries != oldParameters.LookupProcessAsTVSeries)
-                    return (DataState.Changed);
+                return (DataState.Changed);
 
             if ((lookupIgnoredPhrases == null && oldParameters.LookupIgnoredPhrases != null) || (lookupIgnoredPhrases != null && oldParameters.LookupIgnoredPhrases == null))
                 return (DataState.Changed);
@@ -6388,21 +6458,22 @@ namespace DomainObjects
         }
 
         /// <summary>
-        /// Get a legal filename string.
+        /// Get a legal filename string
         /// </summary>
-        /// <param name="fileName">The original file name.</param>
-        /// <param name="replacer">The character to replace illegal characters.</param>
-        /// <returns>The legal file name.</returns>
-        public static string GetLegalFileName(string fileName, char replacer)
+        /// <param name="fileName">The original file name</param>
+        /// <param name="replacement">The character to replace illegal characters</param>
+        /// <returns>The legal file name</returns>
+        public static string GetLegalFileName(string fileName, char replacement)
         {
             char[] illegalChars = Path.GetInvalidFileNameChars();
 
-            string legalName = fileName;
+            string result = fileName;
+            foreach (char ch in illegalChars)
+            {
+                result = result.Replace(ch, replacement);
+            }
 
-            foreach (char illegalChar in illegalChars)
-                legalName = legalName.Replace(illegalChar, replacer);
-
-            return (legalName);
+            return result;
         }
     }
 }

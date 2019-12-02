@@ -35,7 +35,7 @@ namespace DomainObjects
         private string system;
         private string protocol;
         private string code;
-        private string rating;        
+        private string rating;
         private string mpaaRating;
 
         private static Collection<ParentalRating> parentalRatings;
@@ -69,85 +69,65 @@ namespace DomainObjects
         public static int Load()
         {
             string actualFileName = Path.Combine(RunParameters.DataDirectory, fileName);
-            if (!File.Exists(actualFileName))
+            if (File.Exists(actualFileName) == false)
+            {
                 actualFileName = Path.Combine(RunParameters.ConfigDirectory, fileName);
-
+            }
             Logger.Instance.Write("Loading Parental Ratings from " + actualFileName);
 
             parentalRatings = new Collection<ParentalRating>();
-            
-            XmlReader reader = null;
-
-            XmlReaderSettings settings = new XmlReaderSettings();
-            settings.IgnoreWhitespace = true;
 
             try
             {
-                reader = XmlReader.Create(actualFileName, settings);
-            }
-            catch (IOException)
-            {
-                Logger.Instance.Write("Failed to open " + actualFileName);
-                return (0);
-            }
-
-            try
-            {
-                string currentLocation = null;
-                string currentSystem = null;
-                string currentProtocol = null;
-
-                while (!reader.EOF)
+                using (var reader = XmlReader.Create(actualFileName, new XmlReaderSettings { IgnoreWhitespace = true }))
                 {
-                    reader.Read();
-                    if (reader.IsStartElement())
+                    string currentLocation = null;
+                    string currentSystem = null;
+                    string currentProtocol = null;
+
+                    while (!reader.EOF)
                     {
-                        switch (reader.Name)
+                        reader.Read();
+                        if (reader.IsStartElement())
                         {
-                            case "Location":
-                                currentLocation = reader.GetAttribute("code").Trim().ToUpperInvariant();
-                                try
-                                {
-                                    currentSystem = reader.GetAttribute("system").Trim().ToUpperInvariant();
-                                }
-                                catch (NullReferenceException)
-                                {
-                                    currentSystem = null;
-                                }
-                                break;
-                            case "Protocol":
-                                currentProtocol = reader.GetAttribute("name").Trim().ToUpperInvariant();
-                                break;
-                            case "ParentalRating":
-                                ParentalRating parentalRating = new ParentalRating(currentLocation,
-                                    currentSystem,
-                                    currentProtocol,
-                                    reader.GetAttribute("code").Trim(),
-                                    reader.GetAttribute("rating").Trim(),
-                                    reader.GetAttribute("mpaaRating").Trim());
-                                parentalRatings.Add(parentalRating);
-                                break;
-                            default:
-                                break;
+                            switch (reader.Name)
+                            {
+                                case "Location":
+                                    currentLocation = reader.GetAttribute("code").Trim().ToUpperInvariant();
+                                    currentSystem = reader.GetAttribute("system")?.Trim().ToUpperInvariant();
+                                    break;
+                                case "Protocol":
+                                    currentProtocol = reader.GetAttribute("name").Trim().ToUpperInvariant();
+                                    break;
+                                case "ParentalRating":
+                                    ParentalRating parentalRating = new ParentalRating(currentLocation,
+                                        currentSystem,
+                                        currentProtocol,
+                                        reader.GetAttribute("code").Trim(),
+                                        reader.GetAttribute("rating").Trim(),
+                                        reader.GetAttribute("mpaaRating").Trim());
+
+                                    parentalRatings.Add(parentalRating);
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
+
+                    Logger.Instance.Write("Parental ratings loaded");
                 }
-
-                Logger.Instance.Write("Parental ratings loaded");
             }
-            catch (XmlException e)
+            catch (XmlException ex)
             {
                 Logger.Instance.Write("Failed to load file " + actualFileName);
-                Logger.Instance.Write("Data exception: " + e.Message);
+                Logger.Instance.Write("Data exception: " + ex.Message);
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to load file " + actualFileName);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
-
-            if (reader != null)
-                reader.Close();
 
             return (parentalRatings.Count);
         }

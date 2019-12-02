@@ -123,95 +123,85 @@ namespace Lookups
 
             if (RunParameters.Instance.LookupReload)
             {
-                clearExistingData();
+                ClearExistingData();
                 return;
             }
 
-            TVSeriesEntry tvSeriesEntry = null;
-            XmlReader reader = null;
-
-            XmlReaderSettings settings = new XmlReaderSettings();
-            settings.IgnoreWhitespace = true;
-
-            string path = Path.Combine(RunParameters.DataDirectory, "TV Series Database.xml");
+            var path = Path.Combine(RunParameters.DataDirectory, "TV Series Database.xml");
+            if (File.Exists(path) == false)
+            {
+                return;
+            }
 
             Logger.Instance.Write("Loading TV series database from " + path);
             int notFoundCount = 0;
 
             try
             {
-                reader = XmlReader.Create(path, settings);
-            }
-            catch (IOException)
-            {
-                Logger.Instance.Write("TV series database cannot be opened");
-                return;
-            }
-
-            try
-            {
-                while (!reader.EOF)
+                using (var reader = XmlReader.Create(path, new XmlReaderSettings { IgnoreWhitespace = true }))
                 {
-                    reader.Read();
-                    if (reader.IsStartElement())
+                    while (reader.EOF == false)
                     {
-                        switch (reader.Name.ToLowerInvariant())
+                        reader.Read();
+                        if (reader.IsStartElement())
                         {
-                            case "series":
-                                tvSeriesEntry = new TVSeriesEntry(reader.GetAttribute("title"), reader.GetAttribute("metaDataTitle"));
-                                tvSeriesEntry.Status = reader.GetAttribute("status");
+                            switch (reader.Name.ToLowerInvariant())
+                            {
+                                case "series":
+                                    var tvSeriesEntry = new TVSeriesEntry(reader.GetAttribute("title"), reader.GetAttribute("metaDataTitle"));
+                                    tvSeriesEntry.Status = reader.GetAttribute("status");
 
-                                tvSeriesEntry.Load(reader.ReadSubtree());
-                                if (tvSeriesEntry.Poster != null)
-                                {
-                                    PosterEntry posterEntry = PosterEntry.FindPosterEntry(posterEntries, tvSeriesEntry.Poster.Value);
-                                    posterEntry.Count++;
-                                }
+                                    tvSeriesEntry.Load(reader.ReadSubtree());
+                                    if (tvSeriesEntry.Poster != null)
+                                    {
+                                        PosterEntry posterEntry = PosterEntry.FindPosterEntry(posterEntries, tvSeriesEntry.Poster.Value);
+                                        posterEntry.Count++;
+                                    }
 
-                                addTVSeries(tvSeriesEntry);
-                                if (tvSeriesEntry.Status == "notfound")
-                                    notFoundCount++;
-
-                                break;
-                            default:
-                                break;
+                                    AddTVSeries(tvSeriesEntry);
+                                    if (tvSeriesEntry.Status == "notfound")
+                                    {
+                                        notFoundCount++;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
                 }
             }
-            catch (XmlException e)
+            catch (XmlException ex)
             {
                 Logger.Instance.Write("Failed to load file " + path);
-                Logger.Instance.Write("Data exception: " + e.Message);
+                Logger.Instance.Write("Data exception: " + ex.Message);
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to load file " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
-
-            if (reader != null)
-                reader.Close();
 
             Logger.Instance.Write("Loaded " + tvSeries.Count + " TV series (not found = " + notFoundCount + ")");
         }
 
-        private void addTVSeries(TVSeriesEntry newEntry)
+        private void AddTVSeries(TVSeriesEntry newEntry)
         {
             if (newEntry.Status == "notfound" && string.IsNullOrWhiteSpace(newEntry.Overview))
                 return;
 
-            foreach (TVSeriesEntry oldEntry in tvSeries)
+            foreach (var item in tvSeries)
             {
-                if (newEntry.Title == oldEntry.Title &&
-                    newEntry.EpisodeName == oldEntry.EpisodeName &&
-                    newEntry.SeasonNumber == oldEntry.SeasonNumber &&
-                    newEntry.EpisodeNumber == oldEntry.EpisodeNumber &&
-                    newEntry.Overview == oldEntry.Overview)
+                if (newEntry.Title == item.Title
+                    && newEntry.EpisodeName == item.EpisodeName
+                    && newEntry.SeasonNumber == item.SeasonNumber
+                    && newEntry.EpisodeNumber == item.EpisodeNumber
+                    && newEntry.Overview == item.Overview)
                 {
                     if (TraceEntry.IsDefined(TraceName.Lookups))
+                    {
                         Logger.Instance.Write("Duplicate TV database entry ignored for " + newEntry.ToString());
-
+                    }
                     duplicatesDeleted++;
                     return;
                 }
@@ -220,7 +210,7 @@ namespace Lookups
             tvSeries.Add(newEntry);
         }
 
-        private void clearExistingData()
+        private void ClearExistingData()
         {
             Logger.Instance.Write("Clearing existing TV series data");
 
@@ -231,24 +221,24 @@ namespace Lookups
                 File.Delete(path);
                 Logger.Instance.Write("TV series database deleted");
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to delete " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException ex)
             {
                 Logger.Instance.Write("Failed to delete " + path);
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
             }
 
             LookupController.ClearPosterDirectory(RunParameters.ImagePath);
-            LookupController.ClearPosterDirectory(Path.Combine(RunParameters.ImagePath, "TV Series"));            
+            LookupController.ClearPosterDirectory(Path.Combine(RunParameters.ImagePath, "TV Series"));
 
             Logger.Instance.Write("Existing TV series data cleared");
         }
 
-        private void clearPosterDirectory(string directoryPath)
+        private void ClearPosterDirectory(string directoryPath)
         {
             if (!Directory.Exists(directoryPath))
                 return;
@@ -277,7 +267,7 @@ namespace Lookups
 
         internal LookupController.LookupReply Process(EPGEntry epgEntry)
         {
-            bool isTVSeries = checkForTVSeries(epgEntry);
+            bool isTVSeries = CheckForTVSeries(epgEntry);
             if (!isTVSeries)
                 return (LookupController.LookupReply.NotTVSeries);
 
@@ -307,9 +297,9 @@ namespace Lookups
                     " episode number " + epgEntry.EpisodeNumber);
             }
 
-            string searchTitle = getSearchName(epgEntry.EventName);
+            string searchTitle = GetSearchName(epgEntry.EventName);
 
-            TVSeriesEntry existingTVSeries = findTVSeriesInLocalDB(searchTitle, epgEntry);
+            TVSeriesEntry existingTVSeries = FindTVSeriesInLocalDB(searchTitle, epgEntry);
             if (existingTVSeries != null)
             {
                 if (TraceEntry.IsDefined(TraceName.Lookups))
@@ -317,7 +307,7 @@ namespace Lookups
 
                 if (existingTVSeries.Found)
                 {
-                    processTVSeries(epgEntry, existingTVSeries);
+                    ProcessTVSeries(epgEntry, existingTVSeries);
 
                     if (TraceEntry.IsDefined(TraceName.Lookups))
                         Logger.Instance.Write("Season set to " + epgEntry.SeasonNumber + " Episode set to " + epgEntry.EpisodeNumber +
@@ -362,7 +352,7 @@ namespace Lookups
                 bool fromCache = false;
 
                 if (cacheEntries != null)
-                    tvSeriesEntry = findCacheEntry(searchTitle, epgEntry.EventSubTitle);
+                    tvSeriesEntry = FindCacheEntry(searchTitle, epgEntry.EventSubTitle);
 
                 if (tvSeriesEntry == null)
                 {
@@ -406,7 +396,7 @@ namespace Lookups
                     if (TraceEntry.IsDefined(TraceName.Lookups))
                         Logger.Instance.Write("Retrieved " + results.Series.Count + " matches for " + searchTitle);
 
-                    tvSeriesEntry = findTVSeriesEntry(results.Series, searchTitle, epgEntry.EventSubTitle);
+                    tvSeriesEntry = FindTVSeriesEntry(results.Series, searchTitle, epgEntry.EventSubTitle);
                 }
                 else
                 {
@@ -421,12 +411,12 @@ namespace Lookups
                         Logger.Instance.Write("Found series " + tvSeriesEntry.SeriesName);
 
                     if (!fromCache)
-                        addToCacheEntries(searchTitle, tvSeriesEntry);
+                        AddToCacheEntries(searchTitle, tvSeriesEntry);
 
-                    TVSeriesEntry newTVSeries = createTVSeriesEntry(searchTitle, tvSeriesEntry, epgEntry, fromCache);
+                    TVSeriesEntry newTVSeries = CreateTVSeriesEntry(searchTitle, tvSeriesEntry, epgEntry, fromCache);
                     if (newTVSeries != null)
                     {
-                        processTVSeries(epgEntry, newTVSeries);
+                        ProcessTVSeries(epgEntry, newTVSeries);
                         if (TraceEntry.IsDefined(TraceName.Lookups))
                             Logger.Instance.Write("Season set to " + epgEntry.SeasonNumber + " Episode set to " + epgEntry.EpisodeNumber +
                                 " Episode name set to " + (string.IsNullOrWhiteSpace(epgEntry.EventSubTitle) ? "n/a" : "'" + epgEntry.EventSubTitle + "'"));
@@ -453,17 +443,17 @@ namespace Lookups
                 noData++;
                 return (LookupController.LookupReply.NoData);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 webErrors++;
                 webExceptionCount++;
 
                 if (webExceptionCount < RunParameters.Instance.LookupErrorLimit)
                 {
-                    Logger.Instance.Write("<e> TV series lookup has encountered an exception of type " + e.GetType().Name
+                    Logger.Instance.Write("<e> TV series lookup has encountered an exception of type " + ex.GetType().Name
                         + " when searching for '" + searchTitle + "'");
-                    Logger.Instance.Write("<e> " + e.Message);
-                    
+                    Logger.Instance.Write("<e> " + ex.Message);
+
                     if (DebugEntry.IsDefined(DebugName.LogResponseKeys) && apiInstance.ResponseKeys != null)
                     {
                         foreach (DictionaryEntry dictionaryEntry in apiInstance.ResponseKeys)
@@ -478,7 +468,7 @@ namespace Lookups
             }
         }
 
-        private bool checkForTVSeries(EPGEntry epgEntry)
+        private bool CheckForTVSeries(EPGEntry epgEntry)
         {
             if (RunParameters.Instance.LookupProcessAsTVSeries)
                 return (true);
@@ -495,7 +485,7 @@ namespace Lookups
             return (false);
         }
 
-        private string getSearchName(string eventName)
+        private string GetSearchName(string eventName)
         {
             if (eventName == null || RunParameters.Instance.LookupIgnoredPhrases == null)
                 return (eventName);
@@ -511,7 +501,7 @@ namespace Lookups
             return (searchName.Trim());
         }
 
-        private TVSeriesEntry findTVSeriesInLocalDB(string title, EPGEntry epgEntry)
+        private TVSeriesEntry FindTVSeriesInLocalDB(string title, EPGEntry epgEntry)
         {
             if (title == null)
                 return (null);
@@ -523,7 +513,7 @@ namespace Lookups
 
             foreach (TVSeriesEntry tvSeriesEntry in tvSeries)
             {
-                bool matched = matchLocalDBEntries(tvSeriesEntry, title, epgEntry.EventSubTitle, epgEntry.ShortDescription,
+                bool matched = MatchLocalDBEntries(tvSeriesEntry, title, epgEntry.EventSubTitle, epgEntry.ShortDescription,
                     epgEntry.SeasonNumber, epgEntry.EpisodeNumber);
                 if (matched)
                     return (tvSeriesEntry);
@@ -532,7 +522,7 @@ namespace Lookups
             return (null);
         }
 
-        private bool matchLocalDBEntries(TVSeriesEntry tvSeriesEntry, string title, string subTitle, string description, int seasonNumber, int episodeNumber)
+        private bool MatchLocalDBEntries(TVSeriesEntry tvSeriesEntry, string title, string subTitle, string description, int seasonNumber, int episodeNumber)
         {
             if (tvSeriesEntry.Title == null || tvSeriesEntry.Title.ToLowerInvariant() != title.ToLowerInvariant())
                 return (false);
@@ -558,11 +548,11 @@ namespace Lookups
             return (false);
         }
 
-        private TvdbSeries findTVSeriesEntry(Collection<TvdbSeries> series, string title, string subTitle)
+        private TvdbSeries FindTVSeriesEntry(Collection<TvdbSeries> series, string title, string subTitle)
         {
             if (!string.IsNullOrWhiteSpace(subTitle))
             {
-                TvdbSeries episodeSeries = findTVSeriesEntryUsingSubTitle(series, title, subTitle);
+                TvdbSeries episodeSeries = FindTVSeriesEntryUsingSubTitle(series, title, subTitle);
                 if (episodeSeries != null)
                     return (episodeSeries);
             }
@@ -658,7 +648,7 @@ namespace Lookups
             }
         }
 
-        private TvdbSeries findTVSeriesEntryUsingSubTitle(Collection<TvdbSeries> series, string title, string subTitle)
+        private TvdbSeries FindTVSeriesEntryUsingSubTitle(Collection<TvdbSeries> series, string title, string subTitle)
         {
             if (string.IsNullOrWhiteSpace(subTitle))
                 return (null);
@@ -680,7 +670,7 @@ namespace Lookups
                 {
                     foreach (TvdbEpisode episode in tvSeriesEntry.Episodes)
                     {
-                        bool found = matchEpisodeNames(episode.EpisodeName, subTitle);
+                        bool found = MatchEpisodeNames(episode.EpisodeName, subTitle);
                         if (found)
                         {
                             if (TraceEntry.IsDefined(TraceName.Lookups))
@@ -695,7 +685,7 @@ namespace Lookups
             TvdbSeries bestSeries = null;
             TvdbEpisode bestEpisode = null;
 
-            string matchSubTitle = removePunctuation(processEpisodePartNumber(subTitle.Trim().ToLowerInvariant()), punctuation);
+            string matchSubTitle = RemovePunctuation(ProcessEpisodePartNumber(subTitle.Trim().ToLowerInvariant()), punctuation);
 
             foreach (TvdbSeries tvSeriesEntry in series)
             {
@@ -705,7 +695,7 @@ namespace Lookups
                     {
                         if (!string.IsNullOrWhiteSpace(episode.EpisodeName))
                         {
-                            string matchEpisodeName = removePunctuation(processNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
+                            string matchEpisodeName = RemovePunctuation(ProcessNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
                             double result = LookupController.CompareLikeStrings(matchEpisodeName, matchSubTitle);
 
                             if (result > bestResult)
@@ -747,7 +737,7 @@ namespace Lookups
                     {
                         if (!string.IsNullOrWhiteSpace(episode.EpisodeName))
                         {
-                            string matchEpisodeName = removePunctuation(processNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
+                            string matchEpisodeName = RemovePunctuation(ProcessNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
                             if (matchEpisodeName.StartsWith(matchSubTitle))
                             {
                                 if (TraceEntry.IsDefined(TraceName.Lookups))
@@ -768,7 +758,7 @@ namespace Lookups
             return (null);
         }
 
-        private void addToCacheEntries(string title, TvdbSeries series)
+        private void AddToCacheEntries(string title, TvdbSeries series)
         {
             if (cacheEntries == null)
                 cacheEntries = new Collection<CacheEntry>();
@@ -782,7 +772,7 @@ namespace Lookups
             cacheEntries.Add(new CacheEntry(title, series));
         }
 
-        private TvdbSeries findCacheEntry(string title, string subTitle)
+        private TvdbSeries FindCacheEntry(string title, string subTitle)
         {
             foreach (CacheEntry cacheEntry in cacheEntries)
             {
@@ -795,7 +785,7 @@ namespace Lookups
                     {
                         foreach (TvdbEpisode episode in cacheEntry.Series.Episodes)
                         {
-                            bool matched = matchEpisodeNames(episode.EpisodeName, subTitle);
+                            bool matched = MatchEpisodeNames(episode.EpisodeName, subTitle);
                             if (matched)
                                 return (cacheEntry.Series);
                         }
@@ -806,14 +796,14 @@ namespace Lookups
             return (null);
         }
 
-        private TVSeriesEntry createTVSeriesEntry(string searchTitle, TvdbSeries tvSeriesEntry, EPGEntry epgEntry, bool fromCache)
+        private TVSeriesEntry CreateTVSeriesEntry(string searchTitle, TvdbSeries tvSeriesEntry, EPGEntry epgEntry, bool fromCache)
         {
             TVSeriesEntry seriesEntry = null;
             string posterPath = null;
 
             try
             {
-                bool loadAllData = needAllData(epgEntry.SeasonNumber, epgEntry.EpisodeNumber, epgEntry.EventSubTitle);
+                bool loadAllData = NeedAllData(epgEntry.SeasonNumber, epgEntry.EpisodeNumber, epgEntry.EventSubTitle);
 
                 if (!fromCache)
                 {
@@ -839,7 +829,7 @@ namespace Lookups
                 seriesEntry.OriginalTitle = epgEntry.EventName;
                 seriesEntry.SeriesOverview = LookupController.ReplaceHtmlChars(tvSeriesEntry.Overview);
                 seriesEntry.SeriesStartDate = tvSeriesEntry.FirstAiredDate;
-                
+
                 if (epgEntry.ShortDescription != null)
                     seriesEntry.Overview = epgEntry.ShortDescription;
                 else
@@ -860,7 +850,7 @@ namespace Lookups
 
                 if (loadAllData)
                 {
-                    TvdbEpisode episode = findEpisode(tvSeriesEntry, epgEntry.SeasonNumber, epgEntry.EpisodeNumber, epgEntry.EventName, epgEntry.EventSubTitle);
+                    TvdbEpisode episode = FindEpisode(tvSeriesEntry, epgEntry.SeasonNumber, epgEntry.EpisodeNumber, epgEntry.EventName, epgEntry.EventSubTitle);
 
                     string subTitleComment = " Subtitle " + (!string.IsNullOrWhiteSpace(epgEntry.EventSubTitle) ? "'" + epgEntry.EventSubTitle + "'" : "n/a");
 
@@ -902,7 +892,7 @@ namespace Lookups
                         Logger.Instance.Write("Season/episode numbers or subtitle not available");
                 }
 
-                loadImage(epgEntry.EventName, searchTitle, seriesEntry, tvSeriesEntry);
+                LoadImage(epgEntry.EventName, searchTitle, seriesEntry, tvSeriesEntry);
                 webExceptionCount = 0;
 
                 tvSeries.Add(seriesEntry);
@@ -937,7 +927,7 @@ namespace Lookups
             }
         }
 
-        private void loadImage(string title, string searchTitle, TVSeriesEntry seriesEntry, TvdbSeries tvSeriesEntry)
+        private void LoadImage(string title, string searchTitle, TVSeriesEntry seriesEntry, TvdbSeries tvSeriesEntry)
         {
             if (RunParameters.Instance.DownloadTVThumbnail == LookupImageType.None)
                 return;
@@ -950,14 +940,14 @@ namespace Lookups
                 Directory.CreateDirectory(imageDirectory);
 
             Guid imageGuid = Guid.NewGuid();
-                        
+
             string posterPath = (RunParameters.Instance.LookupImageNameTitle ?
                 Path.Combine(imageDirectory, RunParameters.GetLegalFileName(title, ' ') + ".jpg") :
                 Path.Combine(imageDirectory, imageGuid + ".jpg"));
 
             bool imageLoaded = false;
 
-            TVSeriesEntry existingEntry = findPosterEntry(searchTitle);
+            TVSeriesEntry existingEntry = FindPosterEntry(searchTitle);
             if (existingEntry == null || existingEntry.Poster == null)
             {
                 try
@@ -996,7 +986,7 @@ namespace Lookups
             if (imageLoaded)
             {
                 seriesEntry.Poster = imageGuid;
-                
+
                 PosterEntry posterEntry = PosterEntry.FindPosterEntry(posterEntries, imageGuid);
                 posterEntry.Count++;
 
@@ -1015,7 +1005,7 @@ namespace Lookups
             }
         }
 
-        private bool needAllData(int seasonNumber, int episodeNumber, string subTitle)
+        private bool NeedAllData(int seasonNumber, int episodeNumber, string subTitle)
         {
             if (seasonNumber != -1 || episodeNumber != -1)
                 return (true);
@@ -1023,7 +1013,7 @@ namespace Lookups
             return (!string.IsNullOrWhiteSpace(subTitle));
         }
 
-        private TvdbEpisode findEpisode(TvdbSeries series, int seasonNumber, int episodeNumber, string title, string subTitle)
+        private TvdbEpisode FindEpisode(TvdbSeries series, int seasonNumber, int episodeNumber, string title, string subTitle)
         {
             if (series.Episodes == null)
                 return (null);
@@ -1046,7 +1036,7 @@ namespace Lookups
 
             foreach (TvdbEpisode episode in series.Episodes)
             {
-                if (matchEpisodeNames(episode.EpisodeName, subTitle))
+                if (MatchEpisodeNames(episode.EpisodeName, subTitle))
                     return (episode);
             }
 
@@ -1054,13 +1044,13 @@ namespace Lookups
             TvdbEpisode bestEpisode = null;
 
             likeSearches++;
-            string matchSubTitle = removePunctuation(processEpisodePartNumber(subTitle.Trim().ToLowerInvariant()), punctuation);
+            string matchSubTitle = RemovePunctuation(ProcessEpisodePartNumber(subTitle.Trim().ToLowerInvariant()), punctuation);
 
             foreach (TvdbEpisode episode in series.Episodes)
             {
                 if (!string.IsNullOrWhiteSpace(episode.EpisodeName))
                 {
-                    string matchEpisodeName = removePunctuation(processNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
+                    string matchEpisodeName = RemovePunctuation(ProcessNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
                     double result = LookupController.CompareLikeStrings(matchEpisodeName, matchSubTitle);
 
                     if (result > bestResult)
@@ -1093,7 +1083,7 @@ namespace Lookups
             {
                 if (!string.IsNullOrWhiteSpace(episode.EpisodeName))
                 {
-                    string matchEpisodeName = removePunctuation(processNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
+                    string matchEpisodeName = RemovePunctuation(ProcessNamePartNumber(episode.EpisodeName.Trim().ToLowerInvariant()), punctuation);
                     if (matchEpisodeName.StartsWith(matchSubTitle))
                     {
                         if (TraceEntry.IsDefined(TraceName.Lookups))
@@ -1112,7 +1102,7 @@ namespace Lookups
             return (null);
         }
 
-        private bool matchEpisodeNames(string episodeName, string subTitle)
+        private bool MatchEpisodeNames(string episodeName, string subTitle)
         {
             if (string.IsNullOrWhiteSpace(episodeName) || string.IsNullOrWhiteSpace(subTitle))
                 return (false);
@@ -1123,8 +1113,8 @@ namespace Lookups
             if (trimmedEpisodeName == trimmedSubTitle)
                 return (true);
 
-            string matchEpisodeName = removePunctuation(processNamePartNumber(trimmedEpisodeName), punctuation);
-            string matchSubTitle = removePunctuation(processEpisodePartNumber(trimmedSubTitle), punctuation);
+            string matchEpisodeName = RemovePunctuation(ProcessNamePartNumber(trimmedEpisodeName), punctuation);
+            string matchSubTitle = RemovePunctuation(ProcessEpisodePartNumber(trimmedSubTitle), punctuation);
 
             if (matchEpisodeName == matchSubTitle)
                 return (true);
@@ -1139,7 +1129,7 @@ namespace Lookups
             return (false);
         }
 
-        private string removePunctuation(string text, string[] punctuation)
+        private string RemovePunctuation(string text, string[] punctuation)
         {
             foreach (string element in punctuation)
             {
@@ -1150,7 +1140,7 @@ namespace Lookups
             return (text.Trim());
         }
 
-        private string processNamePartNumber(string episodeName)
+        private string ProcessNamePartNumber(string episodeName)
         {
             string identifier1 = "(part ";
 
@@ -1166,7 +1156,7 @@ namespace Lookups
             return (episodeName);
         }
 
-        private string processEpisodePartNumber(string episodeName)
+        private string ProcessEpisodePartNumber(string episodeName)
         {
             string identifier1 = ", part ";
 
@@ -1177,13 +1167,13 @@ namespace Lookups
             string identifier2 = " - part ";
             index = episodeName.IndexOf(identifier2);
             if (index != -1)
-                return (parseEpisodePart(episodeName, index, identifier2));
+                return (ParseEpisodePart(episodeName, index, identifier2));
 
             string[] nameParts = episodeName.Split(new char[] { ' ' });
             if (nameParts[nameParts.Length - 1].Length > 2)
                 return (episodeName);
 
-            string digit = getDigit(nameParts[nameParts.Length - 1]);
+            string digit = GetDigit(nameParts[nameParts.Length - 1]);
             if (digit == null)
                 return (episodeName);
 
@@ -1194,7 +1184,7 @@ namespace Lookups
             return (editedName + " (" + digit + ")");
         }
 
-        private string parseEpisodePart(string episodeName, int index, string identifier)
+        private string ParseEpisodePart(string episodeName, int index, string identifier)
         {
             int digitIndex = index + identifier.Length;
 
@@ -1210,14 +1200,14 @@ namespace Lookups
                 numberIndex++;
             }
 
-            string digit = getDigit(number.ToString());
+            string digit = GetDigit(number.ToString());
             if (digit == null)
                 return (episodeName);
 
             return (episodeName.Substring(0, index) + " (" + digit + ")");
         }
 
-        private string getDigit(string number)
+        private string GetDigit(string number)
         {
             string digit = null;
 
@@ -1266,7 +1256,7 @@ namespace Lookups
             return (digit);
         }
 
-        private TVSeriesEntry findPosterEntry(string title)
+        private TVSeriesEntry FindPosterEntry(string title)
         {
             if (title == null)
                 return (null);
@@ -1288,7 +1278,7 @@ namespace Lookups
             return (null);
         }
 
-        private void processTVSeries(EPGEntry epgEntry, TVSeriesEntry seriesEntry)
+        private void ProcessTVSeries(EPGEntry epgEntry, TVSeriesEntry seriesEntry)
         {
             epgEntry.MetaDataTitle = seriesEntry.Title;
 
@@ -1326,7 +1316,7 @@ namespace Lookups
 
             /*if (epgEntry.EventCategory == null && seriesEntry.Genre != null)
                 epgEntry.EventCategory = "Series," + seriesEntry.Genre;*/
-            createEventCategory(epgEntry, seriesEntry);
+            CreateEventCategory(epgEntry, seriesEntry);
 
             if (epgEntry.SeasonNumber == -1 && epgEntry.EpisodeNumber == -1)
             {
@@ -1346,14 +1336,14 @@ namespace Lookups
             seriesEntry.DateLastUsed = DateTime.Now;
         }
 
-        private void createEventCategory(EPGEntry epgEntry, TVSeriesEntry seriesEntry)
+        private void CreateEventCategory(EPGEntry epgEntry, TVSeriesEntry seriesEntry)
         {
             if (string.IsNullOrWhiteSpace(seriesEntry.Genre))
                 return;
             if (!RunParameters.Instance.LookupIgnoreCategories && epgEntry.EventCategory != null)
                 return;
 
-            epgEntry.EventCategory = new EventCategorySpec("Series," + seriesEntry.Genre);            
+            epgEntry.EventCategory = new EventCategorySpec("Series," + seriesEntry.Genre);
         }
 
         internal void CreateTVDatabase()
@@ -1416,16 +1406,16 @@ namespace Lookups
 
                 writer.Close();
             }
-            catch (XmlException e)
+            catch (XmlException ex)
             {
                 Logger.Instance.Write("Failed to unload TV series database");
-                Logger.Instance.Write("Data exception: " + e.Message);
+                Logger.Instance.Write("Data exception: " + ex.Message);
                 throw;
             }
-            catch (IOException e)
+            catch (IOException ex)
             {
                 Logger.Instance.Write("Failed to unload TV series database");
-                Logger.Instance.Write("I/O exception: " + e.Message);
+                Logger.Instance.Write("I/O exception: " + ex.Message);
                 throw;
             }
 
@@ -1435,22 +1425,22 @@ namespace Lookups
             Logger.Instance.Write("Deleted " + postersDeleted + " TV series posters no longer in use");
 
             if (!RunParameters.Instance.LookupImagesInBase)
-                cleanPosterDirectory(Path.Combine(RunParameters.ImagePath, "TV Series"), outputEntries);
+                CleanPosterDirectory(Path.Combine(RunParameters.ImagePath, "TV Series"), outputEntries);
             else
-                UnusedPosters = collectUnusedPosters(RunParameters.ImagePath, outputEntries);
-                            
+                UnusedPosters = CollectUnusedPosters(RunParameters.ImagePath, outputEntries);
+
             Logger.Instance.Write("Referenced TV Series posters = " + referencedPosters);
             Logger.Instance.Write("Unreferenced TV Series posters deleted = " + unmatchedDeleted);
-            Logger.Instance.Write("Unreferenced TV Series posters not deleted = " + unmatchedNotDeleted);   
+            Logger.Instance.Write("Unreferenced TV Series posters not deleted = " + unmatchedNotDeleted);
         }
 
-        private void cleanPosterDirectory(string posterDirectory, Collection<TVSeriesEntry> outputEntries)
+        private void CleanPosterDirectory(string posterDirectory, Collection<TVSeriesEntry> outputEntries)
         {
             if (!Directory.Exists(posterDirectory))
                 return;
 
             string[] posterFiles = Directory.GetFiles(posterDirectory, "*.jpg", SearchOption.TopDirectoryOnly);
-                
+
             foreach (string posterName in posterFiles)
             {
                 bool found = false;
@@ -1504,10 +1494,10 @@ namespace Lookups
             }
         }
 
-        private Collection<string> collectUnusedPosters(string posterDirectory, Collection<TVSeriesEntry> outputEntries)
+        private Collection<string> CollectUnusedPosters(string posterDirectory, Collection<TVSeriesEntry> outputEntries)
         {
             Collection<string> unusedPosters = new Collection<string>();
- 
+
             if (!Directory.Exists(posterDirectory))
                 return (unusedPosters);
 
@@ -1588,7 +1578,7 @@ namespace Lookups
                     " Average request delay time = 0.000 secs");
             }
 
-            Logger.Instance.Write("TV statistics: Web errors = " + webErrors + 
+            Logger.Instance.Write("TV statistics: Web errors = " + webErrors +
                 " default timeout = " + apiInstance.DefaultTimeout +
                 " actual timeout = " + apiInstance.ActualTimeout);
         }
@@ -1615,7 +1605,7 @@ namespace Lookups
             internal DateTime? FirstAiredDate { get; set; }
 
             internal string SeriesOverview { get; set; }
-            internal DateTime? SeriesStartDate { get; set; }            
+            internal DateTime? SeriesStartDate { get; set; }
 
             internal string OriginalTitle { get; set; }
 

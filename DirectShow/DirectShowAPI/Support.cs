@@ -40,33 +40,28 @@ namespace DirectShowAPI
         /// <param name="clsid">A valid CLSID. This object must implement IBaseFilter.</param>
         /// <param name="name">The name used in the graph or null.</param>
         /// <returns>An instance of the filter if the method successfully created it or null if not.</returns>
-       [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+        [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
         public static IBaseFilter AddFilterFromClsid(IGraphBuilder graphBuilder, Guid clsid, string name)
         {
-            int hr = 0;
-            IBaseFilter filter = null;
-
             if (graphBuilder == null)
                 throw new ArgumentNullException("graphBuilder");
 
+            IBaseFilter result;
             try
             {
                 Type type = Type.GetTypeFromCLSID(clsid);
-                filter = (IBaseFilter)Activator.CreateInstance(type);
-                hr = graphBuilder.AddFilter(filter, name);
-                DsError.ThrowExceptionForHR(hr);                
+
+                result = (IBaseFilter)Activator.CreateInstance(type);
+
+                int hr = graphBuilder.AddFilter(result, name);
+                DsError.ThrowExceptionForHR(hr);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                if (filter != null)
-                {
-                    string message = e.Message;
-                    Marshal.ReleaseComObject(filter);
-                    filter = null;
-                }
+                result = null;
             }
 
-            return filter;
+            return result;
         }
 
         /// <summary>
@@ -76,34 +71,23 @@ namespace DirectShowAPI
         [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
         public static void RemoveAllFilters(IGraphBuilder graphBuilder)
         {
-            int hr = 0;
-            IEnumFilters enumFilters;
-            ArrayList filtersArray = new ArrayList();
-
             if (graphBuilder == null)
-                throw new ArgumentNullException("graphBuilder");
+                throw new ArgumentNullException(nameof(graphBuilder));
 
-            hr = graphBuilder.EnumFilters(out enumFilters);
+            int hr = graphBuilder.EnumFilters(out IEnumFilters enumerator);
             DsError.ThrowExceptionForHR(hr);
 
-            try
-            {
-                IBaseFilter[] filters = new IBaseFilter[1];
+            ArrayList filtersArray = new ArrayList();
 
-                while (enumFilters.Next(filters.Length, filters, IntPtr.Zero) == 0)
-                {
-                    filtersArray.Add(filters[0]);
-                }
-            }
-            finally
+            var values = new IBaseFilter[1];
+            while (enumerator.Next(values.Length, values, IntPtr.Zero) == 0)
             {
-                Marshal.ReleaseComObject(enumFilters);
+                filtersArray.Add(values[0]);
             }
 
             foreach (IBaseFilter filter in filtersArray)
             {
                 hr = graphBuilder.RemoveFilter(filter);
-                Marshal.ReleaseComObject(filter);
             }
         }
 
@@ -115,18 +99,19 @@ namespace DirectShowAPI
         [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
         public static bool IsThisComObjectInstalled(Guid clsid)
         {
-            bool retval = false;
+            bool result = false;
 
             try
             {
                 Type type = Type.GetTypeFromCLSID(clsid);
                 object o = Activator.CreateInstance(type);
-                retval = true;
-                Marshal.ReleaseComObject(o);
+                result = true;
             }
-            catch { }
+            catch
+            {
+            }
 
-            return retval;
+            return result;
         }
     }
 }

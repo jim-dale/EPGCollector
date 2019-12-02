@@ -66,10 +66,10 @@ namespace DirectShow
             ptrDiseqc = Marshal.AllocCoTaskMem(8192);
                         
             if (filter != null)
-                cardCapable = checkTwinhanInterface();
+                cardCapable = CheckTwinhanInterface();
         }
 
-        private bool checkTwinhanInterface()
+        private bool CheckTwinhanInterface()
         {
             bool success = false;
 
@@ -110,10 +110,7 @@ namespace DirectShow
                             reply = propertySet.Set(THBDA_TUNER, 0, thbdaBuf, thbdaLen, thbdaBuf, thbdaLen);
                             if (reply == 0)
                                 success = true;
-                            Marshal.ReleaseComObject(propertySet);
                         }
-
-                        Marshal.ReleaseComObject(pin);
                     }
                 }
                 finally
@@ -162,14 +159,14 @@ namespace DirectShow
                 
             Logger.Instance.Write("Twinhan/TechniSat high band: " + isHiBand + " 22Khz: " + turnon22Khz);
 
-            setLnbData(true, turnon22Khz, disEqcPort, ((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish);
+            SetLnbData(true, turnon22Khz, disEqcPort, ((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish);
             if (disEqcPort == 0)
                 return (true);
 
-            return(sendDiseqcCommand(disEqcPort, isHiBand, tuningSpec));
+            return(SendDiseqcCommand(disEqcPort, isHiBand, tuningSpec));
         }
 
-        private void setLnbData(bool lnbPower, int turnon22Khz, int disEqcPort, SatelliteDish satelliteDish)
+        private void SetLnbData(bool lnbPower, int turnon22Khz, int disEqcPort, SatelliteDish satelliteDish)
         {
             int thbdaLen = 0x28;
             int disEqcLen = 20;
@@ -214,15 +211,11 @@ namespace DirectShow
                         Logger.Instance.Write("TwinHan/TechniSat SetLNB failed 0x" + reply.ToString("X"));
                     else
                         Logger.Instance.Write("TwinHan/TechniSat SetLNB OK 0x" + reply.ToString("X"));
-
-                    Marshal.ReleaseComObject(propertySet);
                 }
-
-                Marshal.ReleaseComObject(pin);
             }
         }
 
-        private bool sendDiseqcCommand(byte disEqcPort, bool isHiBand, TuningSpec tuningSpec)
+        private bool SendDiseqcCommand(byte disEqcPort, bool isHiBand, TuningSpec tuningSpec)
         {
             //bit 0	(1)	: 0=low band, 1 = hi band
             //bit 1 (2) : 0=vertical, 1 = horizontal
@@ -247,7 +240,7 @@ namespace DirectShow
             commandBytes[2] = 0x38;
             commandBytes[3] = command;
             
-            return(sendCommand(commandBytes));
+            return(SendCommand(commandBytes));
         }
 
         /// <summary>
@@ -255,7 +248,7 @@ namespace DirectShow
         /// </summary>
         /// <param name="command">The Diseqc command byte string.</param>
         /// <returns>True if succeeded; false otherwise.</returns>
-        private bool sendCommand(byte[] command)
+        private bool SendCommand(byte[] command)
         {
             int thbdaLen = 0x28;
             int disEqcLen = 16;
@@ -264,11 +257,12 @@ namespace DirectShow
                 Marshal.WriteByte(ptrDiseqc, 4 + index, 0);
 
             Marshal.WriteInt32(ptrDiseqc, 0, (int)command.Length);          //command len
-            
+
             for (int index = 0; index < command.Length; ++index)
+            {
                 Marshal.WriteByte(ptrDiseqc, 4 + index, command[index]);
-            
-            string line = "";
+            }
+            string line = string.Empty;
             for (int index = 0; index < disEqcLen; ++index)
             {
                 byte commandByte = Marshal.ReadByte(ptrDiseqc, index);
@@ -311,14 +305,10 @@ namespace DirectShow
                         Logger.Instance.Write("TwinHan/TechniSat DiSEqC handler: command succeeded");
                         success = true;
                     }
-
-                    Marshal.ReleaseComObject(propertySet);
                 }
-
-                Marshal.ReleaseComObject(pin);
             }
 
-            return (success);
+            return success;
         }
     }
 }
