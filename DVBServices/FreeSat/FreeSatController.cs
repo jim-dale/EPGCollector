@@ -45,7 +45,7 @@ namespace DVBServices
         public override bool AllDataProcessed { get { return (true); } }
 
         private TSStreamReader freeSatReader;
-        private bool freeSatSectionsDone = false;        
+        private bool freeSatSectionsDone = false;
 
         /// <summary>
         /// Initialize a new instance of the FreeSatController class.
@@ -121,7 +121,7 @@ namespace DVBServices
             {
                 GetBouquetSections(dataProvider, worker, new int[] { 0xbba });
                 if (worker.CancellationPending)
-                    return (CollectorReply.Cancelled);                
+                    return (CollectorReply.Cancelled);
             }
 
             if (collectionSpan == CollectionSpan.ChannelsOnly)
@@ -161,13 +161,13 @@ namespace DVBServices
                             {
                                 FreeSatChannelInfoDescriptor freeSatInfoDescriptor = descriptor as FreeSatChannelInfoDescriptor;
                                 if (freeSatInfoDescriptor != null)
-                                {                                    
+                                {
                                     if (freeSatInfoDescriptor.ChannelInfoEntries != null)
                                     {
                                         foreach (FreeSatChannelInfoEntry channelInfoEntry in freeSatInfoDescriptor.ChannelInfoEntries)
                                         {
                                             foreach (FreeSatChannelInfoRegionEntry regionEntry in channelInfoEntry.RegionEntries)
-                                            {                                                    
+                                            {
                                                 Region region = bouquet.FindRegion(regionEntry.RegionNumber);
                                                 if (region == null)
                                                 {
@@ -179,15 +179,15 @@ namespace DVBServices
                                                 channel.OriginalNetworkID = transportStream.OriginalNetworkID;
                                                 channel.TransportStreamID = transportStream.TransportStreamID;
                                                 channel.ServiceID = channelInfoEntry.ServiceID;
-                                                
+
                                                 channel.ChannelID = regionEntry.ChannelNumber;
                                                 channel.UserChannel = regionEntry.ChannelNumber;
-                                                
+
                                                 channel.Unknown1 = channelInfoEntry.Unknown1;
-                                                channel.BouquetID = bouquetSection.BouquetID;                                                  
+                                                channel.BouquetID = bouquetSection.BouquetID;
 
                                                 region.AddChannel(channel);
-                                                FreeSatChannel.AddChannel(channel); 
+                                                FreeSatChannel.AddChannel(channel);
                                             }
                                         }
                                     }
@@ -195,7 +195,7 @@ namespace DVBServices
                             }
                         }
                     }
-                }                
+                }
             }
         }
 
@@ -230,7 +230,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting FreeSat data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0xbbb, 0xc1f, 0xf02 });
+            dataProvider.ChangePidMapping(0xbbb, 0xc1f, 0xf02);
 
             freeSatReader = new TSStreamReader(2000, dataProvider.BufferAddress);
             freeSatReader.Run();
@@ -278,14 +278,14 @@ namespace DVBServices
             Logger.Instance.Write("Stopping reader");
             freeSatReader.Stop();
 
-            Logger.Instance.Write("EPG count: " + epgCount + 
+            Logger.Instance.Write("EPG count: " + epgCount +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + freeSatReader.Discontinuities);
         }
 
         private void getOtherSections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
-            dataProvider.ChangePidMapping(new int[] { 0xbbe });
+            dataProvider.ChangePidMapping(0xbbe);
 
             Logger.Instance.Write("Collecting other data", false, true);
 
@@ -407,13 +407,13 @@ namespace DVBServices
 
             if (RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.ChannelRegion != -1)
                 channel = findChannel(bouquet, RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.ChannelRegion, tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);
-            
+
             if (channel == null)
             {
                 /*channel = findChannel(bouquet, 0, tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);*/
                 {
                     /*if (channel == null)*/
-                        channel = findChannel(bouquet, 100, tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);
+                    channel = findChannel(bouquet, 100, tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);
                     {
                         if (channel == null)
                             channel = findChannel(bouquet, 65535, tvStation.OriginalNetworkID, tvStation.TransportStreamID, tvStation.ServiceID);
@@ -436,7 +436,7 @@ namespace DVBServices
             if (region == null)
                 return (null);
 
-            return(region.FindChannel(originalNetworkID, transportStreamID, serviceID));            
+            return (region.FindChannel(originalNetworkID, transportStreamID, serviceID));
         }
 
         private void logChannelInfo()
@@ -460,7 +460,7 @@ namespace DVBServices
 
                 foreach (Region region in bouquet.Regions)
                 {
-                    Logger.Instance.Write("Bouquet: " + bouquet.BouquetID + " - " + bouquet.Name + 
+                    Logger.Instance.Write("Bouquet: " + bouquet.BouquetID + " - " + bouquet.Name +
                         " Region: " + region.Code + " (channels = " + region.Channels.Count + ")");
 
                     foreach (Channel channel in region.GetChannelsInNameOrder())

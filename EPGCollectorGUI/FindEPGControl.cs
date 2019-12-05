@@ -76,12 +76,12 @@ namespace EPGCentre
 
         private BackgroundWorker workerAnalyze;
         private AutoResetEvent resetEvent = new AutoResetEvent(false);
-        
+
         private Collection<TVStation> stations;
 
         private InProgress inProgress;
         private int lastSpaceUsed;
-        
+
         internal FindEPGControl()
         {
             InitializeComponent();
@@ -121,7 +121,7 @@ namespace EPGCentre
             else
                 Logger.Instance.Write("Analysis started for " + analysisParameters.ScanningFrequency.ToString());
 
-            MainWindow.ChangeMenuItemAvailability(false);            
+            MainWindow.ChangeMenuItemAvailability(false);
 
             workerAnalyze = new BackgroundWorker();
             workerAnalyze.WorkerSupportsCancellation = true;
@@ -337,7 +337,7 @@ namespace EPGCentre
                         else
                         {
                             getData(streamController as ISampleDataProvider, analysisParameters, sender as BackgroundWorker);
-                            streamController.Stop();                            
+                            streamController.Stop();
                         }
 
                         finished = true;
@@ -386,7 +386,7 @@ namespace EPGCentre
                         }
                         else
                         {
-                            Logger.Instance.Write("Signal not acquired: lock is " + graph.SignalLocked + " quality is " + graph.SignalQuality + " signal not present");                                
+                            Logger.Instance.Write("Signal not acquired: lock is " + graph.SignalLocked + " quality is " + graph.SignalQuality + " signal not present");
                             Thread.Sleep(1000);
                             timeout = timeout.Add(new TimeSpan(0, 0, 1));
                             done = (timeout.TotalSeconds == analysisParameters.SignalLockTimeout);
@@ -426,7 +426,7 @@ namespace EPGCentre
             RunParameters.Instance.CurrentFrequency = analysisParameters.ScanningFrequency;
             lastSpaceUsed = 0;
             System.Threading.Timer timer = new System.Threading.Timer(new TimerCallback(timerCallback), dataProvider, 0, 1000);
-            
+
             analysisParameters.ScanningFrequency.CollectionType = CollectionType.MHEG5;
             FrequencyScanner frequencyScanner = new FrequencyScanner(dataProvider, worker);
             Logger.Instance.Write("Loading stations");
@@ -435,7 +435,7 @@ namespace EPGCentre
 
             pidList = new Collection<PidSpec>();
 
-            dataProvider.ChangePidMapping(new int[] { -1 });            
+            dataProvider.ChangePidMapping(-1);
 
             IntPtr memoryPointer = dataProvider.BufferAddress;
             int currentOffset = 0;
@@ -454,7 +454,7 @@ namespace EPGCentre
                         Thread.Sleep(1000);
                         if (currentOffset >= dataProvider.BufferSpaceUsed && dataProvider as SimulationDataProvider == null)
                         {
-                            dataProvider.ChangePidMapping(new int[] { -1 });
+                            dataProvider.ChangePidMapping(-1);
                             Logger.Instance.Write("Reset buffer");
                             currentOffset = 0;
                         }
@@ -558,7 +558,7 @@ namespace EPGCentre
             if (!dgViewResults.InvokeRequired)
                 finish();
             else
-                dgViewResults.Invoke(new Finish(finish));            
+                dgViewResults.Invoke(new Finish(finish));
         }
 
         private void finish()
@@ -581,7 +581,7 @@ namespace EPGCentre
                 MessageBoxIcon.Information);
 
             if (inProgress != null)
-                inProgress.Close(); 
+                inProgress.Close();
         }
 
         private void processResults()
@@ -590,7 +590,7 @@ namespace EPGCentre
                 dgViewResults.Rows.Add();
 
             checkForEIT(dgViewResults);
-            checkForMHEG5(dgViewResults);            
+            checkForMHEG5(dgViewResults);
             checkForOpenTV(dgViewResults);
             checkForFreeSat(dgViewResults);
             checkForMHW1(dgViewResults);
@@ -743,7 +743,7 @@ namespace EPGCentre
             }
 
             DataGridViewCell commentCell = new DataGridViewTextBoxCell();
-            
+
             if (mheg5Pids.Count == 0)
                 commentCell.Value = "Not found";
             else
@@ -779,7 +779,7 @@ namespace EPGCentre
 
             DataGridViewCell epgTypeCell = new DataGridViewTextBoxCell();
             epgTypeCell.Value = "OpenTV";
-            row.Cells.Add(epgTypeCell);            
+            row.Cells.Add(epgTypeCell);
 
             bool pid30 = false;
             bool pid31 = false;
@@ -896,7 +896,7 @@ namespace EPGCentre
                 commentCell.Value = "Found";
             else
                 commentCell.Value = "Not found";
-            row.Cells.Add(commentCell);   
+            row.Cells.Add(commentCell);
 
             dgViewResults.Rows.Add(row);
         }
@@ -1276,7 +1276,7 @@ namespace EPGCentre
                     foreach (int table in pidSpec.Tables)
                     {
                         if (table > 0x80 && table < 0xa5)
-                            correctTables++;                        
+                            correctTables++;
                     }
                 }
             }
@@ -1346,8 +1346,8 @@ namespace EPGCentre
             internal TuningFrequency ScanningFrequency { get; set; }
             internal int SignalLockTimeout { get; set; }
             internal int DataCollectionTimeout { get; set; }
-            
+
             internal AnalysisParameters() { }
-        }       
+        }
     }
 }

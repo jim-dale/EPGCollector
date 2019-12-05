@@ -108,9 +108,9 @@ namespace DVBServices
                 CustomProgramCategory.Load();
                 ParentalRating.Load();
 
-                bool referenceTablesLoaded = SingleTreeDictionaryEntry.Load(Path.Combine(RunParameters.ConfigDirectory, 
+                bool referenceTablesLoaded = SingleTreeDictionaryEntry.Load(Path.Combine(RunParameters.ConfigDirectory,
                     "Huffman Dictionary " +
-                    RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.CountryCode.Trim() + 
+                    RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.CountryCode.Trim() +
                     ".cfg"));
                 if (!referenceTablesLoaded)
                     return (CollectorReply.ReferenceDataError);
@@ -122,7 +122,7 @@ namespace DVBServices
                 if (worker.CancellationPending)
                     return (CollectorReply.Cancelled);
             }
-            
+
             GetStationData(dataProvider, worker);
             if (worker.CancellationPending)
                 return (CollectorReply.Cancelled);
@@ -173,8 +173,8 @@ namespace DVBServices
                     initialCount += openTVChannel.TitleData.Count;
             }
 
-            dataProvider.ChangePidMapping(new int[] { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37 });
-            
+            dataProvider.ChangePidMapping(0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37);
+
             Logger.Instance.Write("Collecting title data", false, true);
 
             Collection<byte> tables = new Collection<byte>();
@@ -182,7 +182,7 @@ namespace DVBServices
             tables.Add(0xa1);
             tables.Add(0xa2);
             tables.Add(0xa3);
-            titleReader = new TSStreamReader(tables, 2000, dataProvider.BufferAddress);            
+            titleReader = new TSStreamReader(tables, 2000, dataProvider.BufferAddress);
             titleReader.Run();
 
             int lastCount = 0;
@@ -239,15 +239,15 @@ namespace DVBServices
             titleReader.Stop();
 
             dataProvider.Frequency.UsageCount = titleDataCount - initialCount;
-            Logger.Instance.Write("Title count: " + titleDataCount + 
-                " buffer space used: " + dataProvider.BufferSpaceUsed + 
+            Logger.Instance.Write("Title count: " + titleDataCount +
+                " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + titleReader.Discontinuities);
         }
 
         private void getSummarySections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
-            dataProvider.ChangePidMapping(new int[] { 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47 });
-            
+            dataProvider.ChangePidMapping(0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47);
+
             Logger.Instance.Write("Collecting summary data", false, true);
 
             Collection<byte> tables = new Collection<byte>();
@@ -314,14 +314,14 @@ namespace DVBServices
             Logger.Instance.Write("Stopping summary reader");
             summaryReader.Stop();
 
-            Logger.Instance.Write("Summary count: " + summaryCount + 
+            Logger.Instance.Write("Summary count: " + summaryCount +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + summaryReader.Discontinuities);
         }
 
         private void getOtherSections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
-            dataProvider.ChangePidMapping(new int[] { 0x55, 0x60 });
+            dataProvider.ChangePidMapping(0x55, 0x60);
 
             Logger.Instance.Write("Collecting other data", false, true);
 
@@ -405,7 +405,7 @@ namespace DVBServices
                                             channel.Type = channelInfoEntry.Type;
                                             channel.Flags = channelInfoEntry.Flags;
                                             channel.BouquetID = bouquetSection.BouquetID;
-                                            channel.Region = infoDescriptor.Region;                                            
+                                            channel.Region = infoDescriptor.Region;
 
                                             Bouquet bouquet = Bouquet.FindBouquet(channel.BouquetID);
                                             if (bouquet == null)
@@ -451,7 +451,7 @@ namespace DVBServices
                                 channel.AddTitleData(titleData);
                         }
                     }
-                    
+
                     titleSection.LogMessage();
                 }
             }
@@ -540,7 +540,7 @@ namespace DVBServices
                         station.ExcludedByChannel = true;
                 }
             }
-        
+
             if (DebugEntry.IsDefined(DebugName.LogChannels))
             {
                 Logger.Instance.WriteSeparator("Bouquet Usage In Identity Order");
@@ -580,7 +580,7 @@ namespace DVBServices
                 foreach (TuningFrequency frequency in RunParameters.Instance.FrequencyCollection)
                 {
                     if (frequency.CollectionType == CollectionType.OpenTV)
-                     {
+                    {
                         if (frequencyFirst)
                         {
                             Logger.Instance.WriteSeparator("Frequency Usage");

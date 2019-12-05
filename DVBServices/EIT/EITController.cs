@@ -286,7 +286,7 @@ namespace DVBServices
             else
                 actualPid = RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.EITPid;
 
-            dataProvider.ChangePidMapping(new int[] { actualPid });            
+            dataProvider.ChangePidMapping(actualPid);            
 
             eitReader = new TSStreamReader(2000, dataProvider.BufferAddress); 
             eitReader.Run();

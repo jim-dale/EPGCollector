@@ -42,13 +42,13 @@ namespace DVBServices
         /// <summary>
         /// Return true if the EIT data is complete; false otherwise.
         /// </summary>
-        public override bool AllDataProcessed { get { return (eitSectionsDone);  } }
+        public override bool AllDataProcessed { get { return (eitSectionsDone); } }
 
         private TSStreamReaderEx eitReader;
         private bool eitSectionsDone = false;
         private int eitChannels;
         private int openTVChannels;
-        
+
         /// <summary>
         /// Initialize a new instance of the EITController class.
         /// </summary>
@@ -118,7 +118,7 @@ namespace DVBServices
             if (worker.CancellationPending)
                 return (CollectorReply.Cancelled);
 
-            if (RunParameters.Instance.StationCollection.Count == 0 && 
+            if (RunParameters.Instance.StationCollection.Count == 0 &&
                 !OptionEntry.IsDefined(RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.Options, OptionName.CreateMissingChannels))
             {
                 Logger.Instance.Write("<e> No stations located - data collection abandoned");
@@ -172,7 +172,7 @@ namespace DVBServices
                                 {
                                     OpenTVChannelInfoDescriptor openTVInfoDescriptor = descriptor as OpenTVChannelInfoDescriptor;
                                     if (openTVInfoDescriptor != null)
-                                        processOpenTVInfoDescriptor(openTVInfoDescriptor, transportStream.OriginalNetworkID, transportStream.TransportStreamID, bouquetSection.BouquetID);                                                                                
+                                        processOpenTVInfoDescriptor(openTVInfoDescriptor, transportStream.OriginalNetworkID, transportStream.TransportStreamID, bouquetSection.BouquetID);
                                 }
                             }
                         }
@@ -199,7 +199,7 @@ namespace DVBServices
                 channel.Flags = channelInfoEntry.Flags;
                 channel.BouquetID = bouquetID;
                 EITChannel.AddChannel(channel);
-                
+
                 eitChannels++;
 
                 Bouquet bouquet = Bouquet.FindBouquet(channel.BouquetID);
@@ -208,7 +208,7 @@ namespace DVBServices
                     bouquet = new Bouquet(channel.BouquetID, BouquetAssociationSection.FindBouquetName(channel.BouquetID));
                     Bouquet.AddBouquet(bouquet);
                 }
-                
+
                 Region region = bouquet.FindRegion(channel.Region);
                 if (region == null)
                 {
@@ -262,7 +262,7 @@ namespace DVBServices
                     bouquet.AddRegion(region);
                 }
 
-                region.AddChannel(channel); 
+                region.AddChannel(channel);
             }
         }
 
@@ -278,9 +278,9 @@ namespace DVBServices
 
             Logger.Instance.Write("Collecting EIT data from pid 0x" + actualPid.ToString("x"));
 
-            dataProvider.ChangePidMapping(new int[] { actualPid });            
+            dataProvider.ChangePidMapping(actualPid);
 
-            eitReader = new TSStreamReaderEx(2000, dataProvider.BufferAddress); 
+            eitReader = new TSStreamReaderEx(2000, dataProvider.BufferAddress);
             eitReader.Run();
 
             int lastCount = 0;
@@ -348,9 +348,9 @@ namespace DVBServices
             Logger.Instance.Write("Stopping reader");
             eitReader.Stop();
 
-            Logger.Instance.Write("EPG count: " + TVStation.TotalEpgCount + 
-                " buffer space used: " + totalBufferUsed + 
-                " discontinuities: " + eitReader.Discontinuities);            
+            Logger.Instance.Write("EPG count: " + TVStation.TotalEpgCount +
+                " buffer space used: " + totalBufferUsed +
+                " discontinuities: " + eitReader.Discontinuities);
         }
 
         private void processSection(Mpeg2Section section)
@@ -381,7 +381,7 @@ namespace DVBServices
         /// <summary>
         /// Create the EPG entries.
         /// </summary>
-        public override void FinishFrequency() 
+        public override void FinishFrequency()
         {
             if (!OptionEntry.IsDefined(OptionName.TcRelevantOnly))
             {
@@ -442,7 +442,7 @@ namespace DVBServices
                         formatString.Append(", ");
 
                     string hexFormat = formatByte.ToString("X");
-                    
+
                     if (hexFormat.Length != 1)
                         formatString.Append("0x" + hexFormat);
                     else

@@ -30,6 +30,7 @@ using System.IO;
 using DirectShowAPI;
 
 using DomainObjects;
+using System.Collections.Generic;
 
 namespace DirectShow
 {
@@ -380,10 +381,10 @@ namespace DirectShow
             this.tuningSpec = tuningSpec;
             this.tunerSpec = tunerSpec;
 
-            createTuningSpace(tuningSpec);
-            createTuneRequest(tuningSpace, tuningSpec);
+            CreateTuningSpace(tuningSpec);
+            CreateTuneRequest(tuningSpace, tuningSpec);
 
-            buildGraph(tuningSpace, tunerSpec, tuningSpec);
+            BuildGraph(tuningSpace, tunerSpec, tuningSpec);
         }
 
         /// <summary>
@@ -400,323 +401,379 @@ namespace DirectShow
             this.tuningSpec = tuningSpec;
             this.tunerSpec = tunerSpec;
 
-            createTuningSpace(tuningSpec);
-            createTuneRequest(tuningSpace, tuningSpec);
+            CreateTuningSpace(tuningSpec);
+            CreateTuneRequest(tuningSpace, tuningSpec);
 
             this.dumpFileName = dumpFileName;
 
-            buildGraph(tuningSpace, tunerSpec, tuningSpec);
+            BuildGraph(tuningSpace, tunerSpec, tuningSpec);
         }
 
-        private void createTuningSpace(TuningSpec tuningSpec)
+
+        private ITuningSpace CreateSatelliteTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector DVB-S Tuning Space";
+
+            var result = (IDVBSTuningSpace)new DVBSTuningSpace();
+
+            LogMessage("Creating DVB Satellite tuning space");
+
+
+            int hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            var frequency = (SatelliteFrequency)tuningSpec.Frequency;
+
+            hr = result.put_HighOscillator(frequency.SatelliteDish.LNBHighBandFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            if (frequency.SatelliteDish.LNBSwitchFrequency == 0)
+                hr = result.put_LNBSwitch(20000000);
+            else
+                hr = result.put_LNBSwitch(frequency.SatelliteDish.LNBSwitchFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_LowOscillator(frequency.SatelliteDish.LNBLowBandFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_NetworkID(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(typeof(DVBSNetworkProvider).GUID);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SpectralInversion(SpectralInversion.NotSet);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SystemType(DVBSystemType.Satellite);
+            DsError.ThrowExceptionForHR(hr);
+
+            LogMessage("Tuning Space LNB Low: " + frequency.SatelliteDish.LNBLowBandFrequency.ToString());
+            LogMessage("Tuning Space LNB High: " + frequency.SatelliteDish.LNBHighBandFrequency.ToString());
+            LogMessage("Tuning Space LNB Switch: " + frequency.SatelliteDish.LNBSwitchFrequency.ToString());
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            return result;
+        }
+
+        private ITuningSpace CreateTerrestrialTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector DVB-T Tuning Space";
+
+            var result = (IDVBTuningSpace)new DVBTuningSpace();
+
+            LogMessage("Creating DVB Terrestrial tuning space");
+
+            int hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(typeof(DVBTNetworkProvider).GUID);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SystemType(DVBSystemType.Terrestrial);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            return result;
+        }
+
+        private ITuningSpace CreateCableTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector DVB-C Tuning Space";
+
+            var result = (IDVBTuningSpace)new DVBTuningSpace();
+
+            LogMessage("Creating DVB Cable tuning space");
+
+            int hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(typeof(DVBCNetworkProvider).GUID);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SystemType(DVBSystemType.Cable);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            return result;
+        }
+
+        private ITuningSpace CreateATSCAntennaTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector ATSC Terrestrial Tuning Space";
+
+            var result = (IATSCTuningSpace)new ATSCTuningSpace();
+
+            LogMessage("Creating ATSC Terrestrial tuning space");
+
+            var hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(typeof(ATSCNetworkProvider).GUID);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_InputType(TunerInputType.Antenna);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxMinorChannel(999);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxPhysicalChannel(69);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxChannel(99);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinMinorChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinPhysicalChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            LogMessage("Tuning Space Max Physical Channel: 69");
+
+            return result;
+        }
+
+        private ITuningSpace CreateATSCCableTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector ATSC Cable Tuning Space";
+
+            var result = (IATSCTuningSpace)new ATSCTuningSpace();
+
+            LogMessage("Creating ATSC Cable tuning space");
+
+            var hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(typeof(ATSCNetworkProvider).GUID);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_InputType(TunerInputType.Cable);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxMinorChannel(999);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxPhysicalChannel(158);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxChannel(9999);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinMinorChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinPhysicalChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            LogMessage("Tuning Space Max Physical Channel: 158");
+
+            return result;
+        }
+
+
+        private ITuningSpace CreateClearQAMTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector Clear QAM Tuning Space";
+
+            var result = (IDigitalCableTuningSpace)new DigitalCableTuningSpace();
+
+            LogMessage("Creating Clear QAM tuning space");
+
+            var hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(new Guid("143827ab-f77b-498d-81ca-5a007aec28bf"));
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_InputType(TunerInputType.Cable);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxChannel(9999);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxMajorChannel(99);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxMinorChannel(999);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxPhysicalChannel(158);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MaxSourceID(0x7fffffff);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinMajorChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinMinorChannel(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinPhysicalChannel(2);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_MinSourceID(0);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            LogMessage("Tuning Space Max Physical Channel: 158");
+
+            return result;
+        }
+
+        private ITuningSpace CreateISDBSatelliteTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector ISDB-S Tuning Space";
+
+            var result = (IDVBSTuningSpace)new DVBSTuningSpace();
+
+            LogMessage("Creating ISDB Satellite tuning space");
+
+            int hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(new Guid("b0a4e6a0-6a1a-4b83-bb5b-903e1d90e6b6"));
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SystemType(DVBSystemType.ISDBS);
+            DsError.ThrowExceptionForHR(hr);
+
+            var frequency = (ISDBSatelliteFrequency)tuningSpec.Frequency;
+
+            hr = result.put_HighOscillator(frequency.SatelliteDish.LNBHighBandFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            if (frequency.SatelliteDish.LNBSwitchFrequency == 0)
+                hr = result.put_LNBSwitch(20000000);
+            else
+                hr = result.put_LNBSwitch(frequency.SatelliteDish.LNBSwitchFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_LowOscillator(frequency.SatelliteDish.LNBLowBandFrequency);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_NetworkID(-1);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SpectralInversion(SpectralInversion.NotSet);
+            DsError.ThrowExceptionForHR(hr);
+
+            LogMessage("Tuning Space LNB Low: " + frequency.SatelliteDish.LNBLowBandFrequency.ToString());
+            LogMessage("Tuning Space LNB High: " + frequency.SatelliteDish.LNBHighBandFrequency.ToString());
+            LogMessage("Tuning Space LNB Switch: " + frequency.SatelliteDish.LNBSwitchFrequency.ToString());
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            return result;
+        }
+
+        private ITuningSpace CreateISDBTerrestrialTuningSpace(TuningSpec tuningSpec)
+        {
+            const string Name = "EPG Collector ISDB-T Tuning Space";
+
+            LogMessage("Creating ISDB Terrestrial tuning space");
+
+            var result = (IDVBTuningSpace)new DVBTuningSpace();
+
+            var hr = result.put_UniqueName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_FriendlyName(Name);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put__NetworkType(new Guid("95037f6f-3ac7-4452-b6c4-45a9ce9292a2"));
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_SystemType(DVBSystemType.ISDBT);
+            DsError.ThrowExceptionForHR(hr);
+
+            hr = result.put_DefaultLocator(GetLocator(tuningSpec, false));
+            DsError.ThrowExceptionForHR(hr);
+
+            return result;
+        }
+
+        private void CreateTuningSpace(TuningSpec tuningSpec)
         {
             switch (tuningSpec.Frequency.TunerType)
             {
                 case TunerType.Satellite:
-                    {
-                        LogMessage("Creating DVB Satellite tuning space");
-
-                        tuningSpace = (ITuningSpace)new DVBSTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector DVB-S Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector DVB-S Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_HighOscillator(((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBHighBandFrequency);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        if (((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency != 0)
-                            reply = ((IDVBSTuningSpace)tuningSpace).put_LNBSwitch(((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency);
-                        else
-                            reply = ((IDVBSTuningSpace)tuningSpace).put_LNBSwitch(20000000);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_LowOscillator(((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBLowBandFrequency);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_NetworkID(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(new Guid("fa4b375a-45b4-4d45-8440-263957b11623"));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_SpectralInversion(SpectralInversion.NotSet);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBTuningSpace)tuningSpace).put_SystemType(DVBSystemType.Satellite);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        LogMessage("Tuning Space LNB Low: " + ((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBLowBandFrequency.ToString());
-                        LogMessage("Tuning Space LNB High: " + ((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBHighBandFrequency.ToString());
-                        LogMessage("Tuning Space LNB Switch: " + ((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency.ToString());
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        break;
-                    }
+                    tuningSpace = CreateSatelliteTuningSpace(tuningSpec);
+                    break;
                 case TunerType.Terrestrial:
-                    {
-                        LogMessage("Creating DVB Terrestrial tuning space");
-
-                        tuningSpace = (IDVBTuningSpace)new DVBTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector DVB-T Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector DVB-T Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(new Guid("216c62df-6d7f-4e9a-8571-05f14edb766a"));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBTuningSpace)tuningSpace).put_SystemType(DVBSystemType.Terrestrial);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        break;
-                    }
+                    tuningSpace = CreateTerrestrialTuningSpace(tuningSpec);
+                    break;
                 case TunerType.Cable:
-                    {
-                        LogMessage("Creating DVB Cable tuning space");
-
-                        tuningSpace = (IDVBTuningSpace)new DVBTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector DVB-C Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector DVB-C Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(typeof(DVBCNetworkProvider).GUID);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBTuningSpace)tuningSpace).put_SystemType(DVBSystemType.Cable);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        break;
-                    }
+                    tuningSpace = CreateCableTuningSpace(tuningSpec);
+                    break;
                 case TunerType.ATSC:
-                    {
-                        LogMessage("Creating ATSC Terrestrial tuning space");
-
-                        tuningSpace = (IATSCTuningSpace)new ATSCTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector ATSC Terrestrial Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector ATSC Terrestrial Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(typeof(ATSCNetworkProvider).GUID);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_InputType(TunerInputType.Antenna);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxMinorChannel(999);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxPhysicalChannel(69);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxChannel(99);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinMinorChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinPhysicalChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        LogMessage("Tuning Space Max Physical Channel: 69");
-
-
-                        break;
-                    }
+                    tuningSpace = CreateATSCAntennaTuningSpace(tuningSpec);
+                    break;
                 case TunerType.ATSCCable:
-                    {
-                        LogMessage("Creating ATSC Cable tuning space");
-
-                        tuningSpace = (IATSCTuningSpace)new ATSCTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector ATSC Cable Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector ATSC Cable Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_InputType(TunerInputType.Cable);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxMinorChannel(999);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxPhysicalChannel(158);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MaxChannel(9999);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinMinorChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinPhysicalChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IATSCTuningSpace)tuningSpace).put_MinChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(typeof(ATSCNetworkProvider).GUID);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        LogMessage("Tuning Space Max Physical Channel: 158");
-
-                        break;
-                    }
+                    tuningSpace = CreateATSCCableTuningSpace(tuningSpec);
+                    break;
                 case TunerType.ClearQAM:
-                    {
-                        LogMessage("Creating Clear QAM tuning space");
-
-                        tuningSpace = (IDigitalCableTuningSpace)new DigitalCableTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector Clear QAM Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector Clear QAM Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_InputType(TunerInputType.Cable);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MaxChannel(9999);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MaxMajorChannel(99);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MaxMinorChannel(999);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MaxPhysicalChannel(158);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MaxSourceID(0x7fffffff);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MinChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MinMajorChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MinMinorChannel(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MinPhysicalChannel(2);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDigitalCableTuningSpace)tuningSpace).put_MinSourceID(0);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(new Guid("143827ab-f77b-498d-81ca-5a007aec28bf"));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        LogMessage("Tuning Space Max Physical Channel: 158");
-
-                        break;
-                    }
+                    tuningSpace = CreateClearQAMTuningSpace(tuningSpec);
+                    break;
                 case TunerType.ISDBS:
-                    {
-                        LogMessage("Creating ISDB Satellite tuning space");
-
-                        tuningSpace = (ITuningSpace)new DVBSTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector ISDB-S Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector ISDB-S Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_HighOscillator(((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBHighBandFrequency);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        if (((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency != 0)
-                            reply = ((IDVBSTuningSpace)tuningSpace).put_LNBSwitch(((SatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency);
-                        else
-                            reply = ((IDVBSTuningSpace)tuningSpace).put_LNBSwitch(20000000);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_LowOscillator(((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBLowBandFrequency);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_NetworkID(-1);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(new Guid("b0a4e6a0-6a1a-4b83-bb5b-903e1d90e6b6"));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_SpectralInversion(SpectralInversion.NotSet);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBTuningSpace)tuningSpace).put_SystemType(DVBSystemType.ISDBS);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        LogMessage("Tuning Space LNB Low: " + ((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBLowBandFrequency.ToString());
-                        LogMessage("Tuning Space LNB High: " + ((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBHighBandFrequency.ToString());
-                        LogMessage("Tuning Space LNB Switch: " + ((ISDBSatelliteFrequency)tuningSpec.Frequency).SatelliteDish.LNBSwitchFrequency.ToString());
-
-                        reply = ((IDVBSTuningSpace)tuningSpace).put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        break;
-                    }
+                    tuningSpace = CreateISDBSatelliteTuningSpace(tuningSpec);
+                    break;
                 case TunerType.ISDBT:
-                    {
-                        LogMessage("Creating ISDB Terrestrial tuning space");
-
-                        tuningSpace = (IDVBTuningSpace)new DVBTuningSpace();
-
-                        reply = tuningSpace.put_UniqueName("EPG Collector ISDB-T Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_FriendlyName("EPG Collector ISDB-T Tuning Space");
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put__NetworkType(new Guid("95037f6f-3ac7-4452-b6c4-45a9ce9292a2"));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = ((IDVBTuningSpace)tuningSpace).put_SystemType(DVBSystemType.ISDBT);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = tuningSpace.put_DefaultLocator(getLocator(tuningSpec, false));
-                        DsError.ThrowExceptionForHR(reply);
-
-                        break;
-                    }
+                    tuningSpace = CreateISDBTerrestrialTuningSpace(tuningSpec);
+                    break;
+                default:
+                    throw new NotSupportedException("Invalid Tuner type");
             }
         }
 
-        private void createTuneRequest(ITuningSpace tuningSpace, TuningSpec tuningSpec)
+        private void CreateTuneRequest(ITuningSpace tuningSpace, TuningSpec tuningSpec)
         {
             reply = tuningSpace.CreateTuneRequest(out tuneRequest);
             DsError.ThrowExceptionForHR(reply);
@@ -780,11 +837,11 @@ namespace DirectShow
                 }
             }
 
-            reply = tuneRequest.put_Locator(getLocator(tuningSpec, true));
+            reply = tuneRequest.put_Locator(GetLocator(tuningSpec, true));
             DsError.ThrowExceptionForHR(reply);
         }
 
-        private ILocator getLocator(TuningSpec tuningSpec, bool logSettings)
+        private ILocator GetLocator(TuningSpec tuningSpec, bool logSettings)
         {
             switch (tuningSpec.Frequency.TunerType)
             {
@@ -1013,34 +1070,20 @@ namespace DirectShow
                         reply = locator.put_SymbolRate(tuningSpec.SymbolRate);
                         DsError.ThrowExceptionForHR(reply);
 
-                        /*reply = locator.put_InnerFEC(FECMethod.Viterbi);
-                        DsError.ThrowExceptionForHR(reply);
-
-                        reply = locator.put_InnerFECRate(Utils.GetNativeFECRate(tuningSpec.FECRate));
-                        DsError.ThrowExceptionForHR(reply);*/
-
                         reply = locator.put_Modulation(Utils.GetNativeModulation(tuningSpec.Modulation));
                         DsError.ThrowExceptionForHR(reply);
 
                         currentLocator = locator;
 
-                        int carrierFrequency;
-                        reply = locator.get_CarrierFrequency(out carrierFrequency);
+                        reply = locator.get_CarrierFrequency(out int carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency);
 
-                        int symbolRate;
-                        reply = locator.get_SymbolRate(out symbolRate);
+                        reply = locator.get_SymbolRate(out int symbolRate);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator symbol rate: " + symbolRate);
 
-                        /*BinaryConvolutionCodeRate innerFec;
-                        reply = locator.get_InnerFECRate(out innerFec);
-                        DsError.ThrowExceptionForHR(reply);
-                        LogMessage("Locator inner FEC: " + innerFec);*/
-
-                        ModulationType modulation;
-                        reply = locator.get_Modulation(out modulation);
+                        reply = locator.get_Modulation(out ModulationType modulation);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator modulation: " + modulation);
 
@@ -1088,8 +1131,7 @@ namespace DirectShow
 
                         currentLocator = locator;
 
-                        int physicalChannel;
-                        reply = locator.get_PhysicalChannel(out physicalChannel);
+                        reply = locator.get_PhysicalChannel(out int physicalChannel);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator physical channel: " + physicalChannel);
 
@@ -1133,18 +1175,15 @@ namespace DirectShow
 
                         currentLocator = locator;
 
-                        int carrierFrequency;
-                        reply = locator.get_CarrierFrequency(out carrierFrequency);
+                        reply = locator.get_CarrierFrequency(out int carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency);
 
-                        ModulationType modulation;
-                        reply = locator.get_Modulation(out modulation);
+                        reply = locator.get_Modulation(out ModulationType modulation);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator modulation: " + modulation);
 
-                        int physicalChannel;
-                        reply = locator.get_PhysicalChannel(out physicalChannel);
+                        reply = locator.get_PhysicalChannel(out int physicalChannel);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator physical channel: " + physicalChannel);
 
@@ -1195,18 +1234,15 @@ namespace DirectShow
 
                         currentLocator = locator;
 
-                        int carrierFrequency;
-                        reply = locator.get_CarrierFrequency(out carrierFrequency);
+                        reply = locator.get_CarrierFrequency(out int carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency);
 
-                        ModulationType modulation;
-                        reply = locator.get_Modulation(out modulation);
+                        reply = locator.get_Modulation(out ModulationType modulation);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator modulation: " + modulation);
 
-                        int physicalChannel;
-                        reply = locator.get_PhysicalChannel(out physicalChannel);
+                        reply = locator.get_PhysicalChannel(out int physicalChannel);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator physical channel: " + physicalChannel);
 
@@ -1263,28 +1299,23 @@ namespace DirectShow
 
                         currentLocator = locator;
 
-                        int carrierFrequency;
-                        reply = locator.get_CarrierFrequency(out carrierFrequency);
+                        reply = locator.get_CarrierFrequency(out int carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency);
 
-                        int symbolRate;
-                        reply = locator.get_SymbolRate(out symbolRate);
+                        reply = locator.get_SymbolRate(out int symbolRate);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator symbol rate: " + symbolRate);
 
-                        BinaryConvolutionCodeRate innerFec;
-                        reply = locator.get_InnerFECRate(out innerFec);
+                        reply = locator.get_InnerFECRate(out BinaryConvolutionCodeRate innerFec);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator inner FEC: " + innerFec);
 
-                        Polarisation polarisation;
-                        reply = locator.get_SignalPolarisation(out polarisation);
+                        reply = locator.get_SignalPolarisation(out Polarisation polarisation);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator polarization: " + polarisation);
 
-                        ModulationType modulation;
-                        reply = locator.get_Modulation(out modulation);
+                        reply = locator.get_Modulation(out ModulationType modulation);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator modulation: " + modulation);
 
@@ -1346,13 +1377,11 @@ namespace DirectShow
 
                         currentLocator = locator;
 
-                        int carrierFrequency;
-                        reply = locator.get_CarrierFrequency(out carrierFrequency);
+                        reply = locator.get_CarrierFrequency(out int carrierFrequency);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator frequency: " + carrierFrequency);
 
-                        int bandwidth;
-                        reply = locator.get_Bandwidth(out bandwidth);
+                        reply = locator.get_Bandwidth(out int bandwidth);
                         DsError.ThrowExceptionForHR(reply);
                         LogMessage("Locator bandwidth: " + bandwidth);
 
@@ -1408,7 +1437,7 @@ namespace DirectShow
 
                         if (!tuner.IsServerTuner && process)
                         {
-                            BDAGraph graph = checkTunerAvailability(tuner, tuningSpec, dumpFileName);
+                            BDAGraph graph = CheckTunerAvailability(tuner, tuningSpec, dumpFileName);
                             if (graph != null)
                             {
                                 Logger.Instance.Write("Using tuner " + (tunerNumber + 1) + ": " + tuner.Name);
@@ -1431,7 +1460,7 @@ namespace DirectShow
                 {
                     if (tuner.Supports(tunerNodeType))
                     {
-                        BDAGraph graph = checkTunerAvailability(tuner, tuningSpec, dumpFileName);
+                        BDAGraph graph = CheckTunerAvailability(tuner, tuningSpec, dumpFileName);
                         if (graph != null)
                         {
                             Logger.Instance.Write("Using tuner " + (Tuner.TunerCollection.IndexOf(tuner) + 1) + ": " + tuner.Name);
@@ -1447,7 +1476,7 @@ namespace DirectShow
             return (null);
         }
 
-        private static BDAGraph checkTunerAvailability(Tuner tuner, TuningSpec tuningSpec, string dumpFileName)
+        private static BDAGraph CheckTunerAvailability(Tuner tuner, TuningSpec tuningSpec, string dumpFileName)
         {
             if (!DebugEntry.IsDefined(DebugName.UseDvbLink))
             {
@@ -1468,13 +1497,13 @@ namespace DirectShow
             }
         }
 
-        private void buildGraph(ITuningSpace tuningSpace, Tuner tuner, TuningSpec tuningSpec)
+        private void BuildGraph(ITuningSpace tuningSpace, Tuner tuner, TuningSpec tuningSpec)
         {
             base.BuildGraph();
 
-            addNetworkProviderFilter(tuningSpace);
-            infiniteTeeFilter = addInfiniteTeeFilter();
-            mpeg2DemuxFilter = addMPEG2DemuxFilter();
+            AddNetworkProviderFilter(tuningSpace);
+            infiniteTeeFilter = AddInfiniteTeeFilter();
+            mpeg2DemuxFilter = AddMPEG2DemuxFilter();
 
             AddHardwareFilters(tuner);
             InsertInfiniteTee();
@@ -1489,7 +1518,7 @@ namespace DirectShow
                 ConnectDownStreamFilters(mpeg2DemuxFilter, MediaSubType.DvbSI);
         }
 
-        private void addNetworkProviderFilter(ITuningSpace dvbTuningSpace)
+        private void AddNetworkProviderFilter(ITuningSpace dvbTuningSpace)
         {
             Guid genProviderClsId = new Guid("{B2F3A67C-29DA-4C78-8831-091ED509A475}");
             Guid networkProviderClsId;
@@ -1676,7 +1705,7 @@ namespace DirectShow
             }
         }
 
-        private IBaseFilter addInfiniteTeeFilter()
+        private IBaseFilter AddInfiniteTeeFilter()
         {
             LogMessage("Adding Infinite Tee Filter");
 
@@ -1689,7 +1718,7 @@ namespace DirectShow
             return infiniteTeeFilter;
         }
 
-        private IBaseFilter addMPEG2DemuxFilter()
+        private IBaseFilter AddMPEG2DemuxFilter()
         {
             LogMessage("Adding MPEG2 Demux");
 
@@ -1810,19 +1839,10 @@ namespace DirectShow
         /// <summary>
         /// Change the PSI filter PID mappings.
         /// </summary>
-        /// <param name="newPid">The new PID to be set.</param>
-        public void ChangePidMapping(int newPid)
-        {
-            ChangePidMapping(new int[] { newPid });
-        }
-
-        /// <summary>
-        /// Change the PSI filter PID mappings.
-        /// </summary>
         /// <param name="newPids">A list of the new PID's to be set.</param>
-        public void ChangePidMapping(int[] newPids)
+        public void ChangePidMapping(params int[] newPids)
         {
-            LogPidsUnMapped(psiPids);
+            LogPidsUnmapped(psiPids);
 
             ((IMemSinkSettings)psiMemoryFilter).clearPIDs();
             psiPids.Clear();
@@ -1838,36 +1858,36 @@ namespace DirectShow
             ((IMemSinkSettings)psiMemoryFilter).clear();
         }
 
-        private void LogPidsUnMapped(Collection<int> oldPids)
+        private void LogPidsUnmapped(IReadOnlyCollection<int> pids)
         {
-            if (oldPids.Count == 0)
+            if (pids.Count == 0)
                 return;
 
-            StringBuilder pidString = new StringBuilder();
-            foreach (int oldPid in oldPids)
+            var builder = new StringBuilder();
+            foreach (int pid in pids)
             {
-                if (pidString.Length == 0)
-                    pidString.Append("Unmapping pid(s) 0x" + oldPid.ToString("X"));
+                if (builder.Length == 0)
+                    builder.Append("Unmapping pid(s) 0x" + pid.ToString("X"));
                 else
-                    pidString.Append(", 0x" + oldPid.ToString("X"));
+                    builder.Append(", 0x" + pid.ToString("X"));
             }
-            LogMessage(pidString.ToString());
+            LogMessage(builder.ToString());
         }
 
-        private void LogPidsMapped(int[] newPids)
+        private void LogPidsMapped(int[] pids)
         {
-            if (newPids.Length == 0)
+            if (pids.Length == 0)
                 return;
 
-            StringBuilder pidString = new StringBuilder();
-            foreach (int newPid in newPids)
+            var builder = new StringBuilder();
+            foreach (int pid in pids)
             {
-                if (pidString.Length == 0)
-                    pidString.Append("Mapping pid(s) 0x" + newPid.ToString("X"));
+                if (builder.Length == 0)
+                    builder.Append("Mapping pid(s) 0x" + pid.ToString("X"));
                 else
-                    pidString.Append(", 0x" + newPid.ToString("X"));
+                    builder.Append(", 0x" + pid.ToString("X"));
             }
-            LogMessage(pidString.ToString());
+            LogMessage(builder.ToString());
         }
 
         /// <summary>
@@ -1909,16 +1929,18 @@ namespace DirectShow
                     }
                 }
 
-                if (!satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
+                if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune == false)
+                {
                     ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
-
+                }
                 Logger.Instance.Write("Setting tune request");
                 reply = (networkProviderFilter as ITuner).put_TuneRequest(tuneRequest);
                 DsError.ThrowExceptionForHR(reply);
 
                 if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
+                {
                     ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
-
+                }
                 SetDVBS2Parameters();
 
                 Logger.Instance.Write("Running graph");
@@ -1930,16 +1952,18 @@ namespace DirectShow
                 bool playReply = base.Play();
                 if (playReply)
                 {
-                    if (!satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
+                    if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune == false)
+                    {
                         ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
-
+                    }
                     Logger.Instance.Write("Setting tune request");
                     reply = (networkProviderFilter as ITuner).put_TuneRequest(tuneRequest);
                     DsError.ThrowExceptionForHR(reply);
 
                     if (satelliteFrequency.DiseqcRunParamters.SwitchAfterTune)
+                    {
                         ChangeDiseqcSwitch(satelliteFrequency.DiseqcRunParamters);
-
+                    }
                     SetDVBS2Parameters();
                 }
 
@@ -2108,9 +2132,11 @@ namespace DirectShow
 
         private static Tuner CreateTuner(string name, params TunerNodeType[] nodeTypes)
         {
-            var result = new Tuner(string.Empty);
-            result.Name = name;
-            result.TunerNodes = new Collection<TunerNode>();
+            var result = new Tuner(string.Empty)
+            {
+                Name = name,
+                TunerNodes = new Collection<TunerNode>()
+            };
             foreach (var nodeType in nodeTypes)
             {
                 var node = new TunerNode(0, nodeType);

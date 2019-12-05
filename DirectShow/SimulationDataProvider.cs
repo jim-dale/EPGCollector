@@ -396,17 +396,8 @@ namespace DirectShow
         /// <summary>
         /// Change the PID mappings.
         /// </summary>
-        /// <param name="newPid">The new PID to be set.</param>
-        public void ChangePidMapping(int newPid)
-        {
-            ChangePidMapping(new int[] { newPid });
-        }
-
-        /// <summary>
-        /// Change the PID mappings.
-        /// </summary>
         /// <param name="newPids">A list of the new PID's to be set.</param>
-        public void ChangePidMapping(int[] newPids)
+        public void ChangePidMapping(params int[] newPids)
         {
             Stop();
 

@@ -278,7 +278,7 @@ namespace DVBServices
 
         private void processPATSections(Collection<TVStation> tvStations)
         {
-            dataProvider.ChangePidMapping(new int[] { BDAGraph.PatPid } );
+            dataProvider.ChangePidMapping(BDAGraph.PatPid);
 
             if (!TraceEntry.IsDefined(TraceName.Bda))
                 Logger.Instance.Write("Collecting PAT data from PID 0x" + BDAGraph.PatPid.ToString("x2"), false, true);
@@ -726,7 +726,7 @@ namespace DVBServices
 
             VirtualChannelTable.Clear();
 
-            dataProvider.ChangePidMapping(new int[] { 0x1ffb });
+            dataProvider.ChangePidMapping(0x1ffb);
 
             Collection<byte> tables = new Collection<byte>();
             tables.Add(0xc8);

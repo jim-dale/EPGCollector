@@ -101,7 +101,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting Channel data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0x711 });
+            dataProvider.ChangePidMapping(0x711);
 
             guideReader = new TSStreamReader(0x3e, 50000, dataProvider.BufferAddress);
             guideReader.Run();
@@ -148,7 +148,7 @@ namespace DVBServices
             Logger.Instance.Write("Stopping reader");
             guideReader.Stop();
 
-            Logger.Instance.Write("Section count: " + lastCount + 
+            Logger.Instance.Write("Section count: " + lastCount +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + guideReader.Discontinuities);
         }
@@ -157,7 +157,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting EPG data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0x711 });
+            dataProvider.ChangePidMapping(0x711);
 
             guideReader = new TSStreamReader(0x3e, 50000, dataProvider.BufferAddress);
             guideReader.Run();
@@ -204,7 +204,7 @@ namespace DVBServices
             Logger.Instance.Write("Stopping reader");
             guideReader.Stop();
 
-            Logger.Instance.Write("Section count: " + lastCount + 
+            Logger.Instance.Write("Section count: " + lastCount +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + guideReader.Discontinuities);
         }
@@ -218,7 +218,7 @@ namespace DVBServices
 
                 try
                 {
-                    Mpeg2ExtendedHeader mpeg2Header = new Mpeg2ExtendedHeader();                    
+                    Mpeg2ExtendedHeader mpeg2Header = new Mpeg2ExtendedHeader();
                     mpeg2Header.Process(section.Data);
                     if (mpeg2Header.Current)
                     {
@@ -234,7 +234,7 @@ namespace DVBServices
                                 if (DebugEntry.IsDefined(DebugName.SiehfernChannelBlocks))
                                     Logger.Instance.Dump("Siehfern Info Block Type 0x" + mpeg2Header.TableIDExtension.ToString("x"), section.Data, section.Data.Length);
                             }
-                        }                        
+                        }
                     }
                 }
                 catch (ArgumentOutOfRangeException e)
@@ -411,7 +411,7 @@ namespace DVBServices
             int length = 0;
 
             for (int lengthIndex = index + 1; lengthIndex < epgBuffer.Length && epgBuffer[lengthIndex] != '@'; lengthIndex++)
-                length++;            
+                length++;
 
             byte[] outputBytes = new byte[length + 1];
 
@@ -423,22 +423,22 @@ namespace DVBServices
                 outputBytes[outputIndex] = epgBuffer[getIndex];
                 outputIndex++;
             }
-            
+
             return (outputBytes);
         }
 
         private void processStation(string epgText, int dateOffset)
         {
-            string[] parts = epgText.Substring(3).Split(new char[] { '(' } );
-            string[] stationDefinition = parts[1].Split(new char[] { ')' } );
-            string[] stationParts = stationDefinition[0].Split(new char[] { ',' } );
+            string[] parts = epgText.Substring(3).Split(new char[] { '(' });
+            string[] stationDefinition = parts[1].Split(new char[] { ')' });
+            string[] stationParts = stationDefinition[0].Split(new char[] { ',' });
 
             currentStation = new TVStation(parts[0]);
             currentStation.Frequency = Int32.Parse(stationParts[1].Trim());
             currentStation.ServiceID = Int32.Parse(stationParts[2].Trim());
 
             bool addStation = true;
-            
+
             foreach (TVStation existingStation in RunParameters.Instance.StationCollection)
             {
                 if (existingStation.OriginalNetworkID == currentStation.OriginalNetworkID &&
@@ -454,8 +454,8 @@ namespace DVBServices
             if (addStation)
                 RunParameters.Instance.StationCollection.Add(currentStation);
 
-            string[] dateParts = stationDefinition[1].Split(new char[] { ' ' } );
-            string[] dayMonthYear = dateParts[1].Trim().Split(new char[] { '.' } );
+            string[] dateParts = stationDefinition[1].Split(new char[] { ' ' });
+            string[] dayMonthYear = dateParts[1].Trim().Split(new char[] { '.' });
             int day = Int32.Parse(dayMonthYear[0]);
             int month = Int32.Parse(dayMonthYear[1]);
             int year = Int32.Parse(dayMonthYear[2]);
@@ -558,7 +558,7 @@ namespace DVBServices
             if (timeIndex == -1)
                 return;
 
-            string[] timeParts = epgText.Substring(timeIndex + 1).Replace(@"\", "").Split(new char[] { ' ' } );
+            string[] timeParts = epgText.Substring(timeIndex + 1).Replace(@"\", "").Split(new char[] { ' ' });
             if (timeParts.Length >= 2 && timeParts[1].Length > 0)
             {
                 try
@@ -603,7 +603,7 @@ namespace DVBServices
                 episodeIndex++;
             }
 
-            epgEntry.EpisodeNumber = episodeNumber;            
+            epgEntry.EpisodeNumber = episodeNumber;
         }
 
         private void processDescription(string epgText, Logger descriptionLogger)

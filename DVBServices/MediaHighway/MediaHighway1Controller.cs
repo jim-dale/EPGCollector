@@ -53,7 +53,7 @@ namespace DVBServices
         /// <summary>
         /// Initialize a new instance of the MediaHighway1Controller class.
         /// </summary>
-        public MediaHighway1Controller() 
+        public MediaHighway1Controller()
         {
             if (RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.MHW1Pids != null)
             {
@@ -61,7 +61,7 @@ namespace DVBServices
                 pid2 = RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.MHW1Pids[1];
             }
         }
-        
+
         /// <summary>
         /// Stop acquiring and processing data.
         /// </summary>
@@ -151,7 +151,7 @@ namespace DVBServices
             Logger.Instance.Write("Collecting channel data", false, true);
             Channel.Channels.Clear();
 
-            dataProvider.ChangePidMapping(new int[] { pid2 });
+            dataProvider.ChangePidMapping(pid2);
 
             channelReader = new TSStreamReader(0x91, 2000, dataProvider.BufferAddress);
             channelReader.Run();
@@ -198,7 +198,7 @@ namespace DVBServices
             Logger.Instance.Write("Stopping channel reader for PID 0x" + pid2.ToString("X").ToLowerInvariant());
             channelReader.Stop();
 
-            Logger.Instance.Write("Channel count: " + Channel.Channels.Count + 
+            Logger.Instance.Write("Channel count: " + Channel.Channels.Count +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
                 " discontinuities: " + channelReader.Discontinuities);
         }
@@ -206,8 +206,8 @@ namespace DVBServices
         private void getCategorySections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
             Logger.Instance.Write("Collecting category data", false, true);
-            
-            dataProvider.ChangePidMapping(new int[] { pid2 });
+
+            dataProvider.ChangePidMapping(pid2);
 
             categoryReader = new TSStreamReader(0x92, 2000, dataProvider.BufferAddress);
             categoryReader.Run();
@@ -256,15 +256,15 @@ namespace DVBServices
 
             Logger.Instance.Write("Category count: " + MediaHighwayProgramCategory.Categories.Count +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
-                " discontinuities: " + categoryReader.Discontinuities); 
+                " discontinuities: " + categoryReader.Discontinuities);
         }
 
         private void getTitleSections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
             Logger.Instance.Write("Collecting title data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { pid1 });
-            
+            dataProvider.ChangePidMapping(pid1);
+
             titleReader = new TSStreamReader(0x90, 2000, dataProvider.BufferAddress);
             titleReader.Run();
 
@@ -326,8 +326,8 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting summary data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { pid2 });
-            
+            dataProvider.ChangePidMapping(pid2);
+
             summaryReader = new TSStreamReader(0x90, 2000, dataProvider.BufferAddress);
             summaryReader.Run();
 
@@ -404,7 +404,7 @@ namespace DVBServices
                             channel.UserChannel = Channel.Channels.Count + 1;
                             Channel.AddChannel(channel);
                         }
-                    }                    
+                    }
                 }
             }
         }
@@ -506,7 +506,7 @@ namespace DVBServices
                             replayTitle.SummaryAvailable = true;
                             replayTitle.PreviousPlayDate = title.Title.StartTime;
                             ((MediaHighwayChannel)Channel.FindChannel(replay.Channel)).AddTitleData(replayTitle);
-                            
+
                             if (DebugEntry.IsDefined(DebugName.Replays))
                                 Logger.Instance.Write("Replay: ch" + replay.Channel + " " +
                                     title.Title.EventName + " " +
@@ -533,7 +533,7 @@ namespace DVBServices
                 if (station != null && station.EPGCollection.Count == 0)
                     channel.ProcessChannelForEPG(station, titleLogger, descriptionLogger, CollectionType.MediaHighway1);
             }
-        
+
             MediaHighwayProgramCategory.LogCategories();
             Channel.LogChannelsInChannelIDOrder();
         }

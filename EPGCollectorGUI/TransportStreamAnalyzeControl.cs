@@ -79,10 +79,10 @@ namespace EPGCentre
 
         private InProgress inProgress;
         private int lastSpaceUsed;
-        
+
         internal TransportStreamAnalyzeControl()
         {
-            InitializeComponent();           
+            InitializeComponent();
         }
 
         internal void Process()
@@ -139,7 +139,7 @@ namespace EPGCentre
             {
                 MessageBox.Show(reply, "EPG Centre", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return (false);
-            }    
+            }
 
             return (true);
         }
@@ -286,7 +286,7 @@ namespace EPGCentre
 
                         if (tuneReply == null)
                         {
-                            getData(graph as ISampleDataProvider, analysisParameters, sender as BackgroundWorker);                                
+                            getData(graph as ISampleDataProvider, analysisParameters, sender as BackgroundWorker);
                             graph.Dispose();
                             finished = true;
                         }
@@ -347,7 +347,7 @@ namespace EPGCentre
 
         private DialogResult showMessage(string message, MessageBoxButtons buttons, MessageBoxIcon icon)
         {
-            return(MessageBox.Show(message, "EPG Centre", buttons, icon));            
+            return (MessageBox.Show(message, "EPG Centre", buttons, icon));
         }
 
         private string checkTuning(ITunerDataProvider graph, AnalysisParameters analysisParameters, BackgroundWorker worker)
@@ -382,13 +382,13 @@ namespace EPGCentre
                         }
                         else
                         {
-                            Logger.Instance.Write("Signal not acquired: lock is " + graph.SignalLocked + " quality is " + graph.SignalQuality + " signal not present");                                                           
+                            Logger.Instance.Write("Signal not acquired: lock is " + graph.SignalLocked + " quality is " + graph.SignalQuality + " signal not present");
                             Thread.Sleep(1000);
                             timeout = timeout.Add(new TimeSpan(0, 0, 1));
                             done = (timeout.TotalSeconds == analysisParameters.SignalLockTimeout);
                         }
                     }
-                    
+
                     if (done)
                     {
                         done = (frequencyRetries == 2);
@@ -419,26 +419,26 @@ namespace EPGCentre
         {
             Logger.Instance.Write("Starting analysis");
 
-            RunParameters.Instance.CurrentFrequency = analysisParameters.ScanningFrequency;            
+            RunParameters.Instance.CurrentFrequency = analysisParameters.ScanningFrequency;
             lastSpaceUsed = 0;
             System.Threading.Timer timer = new System.Threading.Timer(new TimerCallback(timerCallback), dataProvider, 0, 1000);
-           
+
             analysisParameters.ScanningFrequency.CollectionType = CollectionType.MHEG5;
             FrequencyScanner frequencyScanner = new FrequencyScanner(dataProvider, worker);
             Collection<TVStation> stations = frequencyScanner.FindTVStations();
 
             pidList = new Collection<PidSpec>();
 
-            dataProvider.ChangePidMapping(new int[] { -1 });            
+            dataProvider.ChangePidMapping(-1);
 
             IntPtr memoryPointer = dataProvider.BufferAddress;
-            int currentOffset = 0;            
+            int currentOffset = 0;
 
             byte[] buffer = new byte[188];
             DateTime startTime = DateTime.Now;
             int packetCount = 0;
             int errorPackets = 0;
-            int nullPackets = 0;            
+            int nullPackets = 0;
 
             while ((DateTime.Now - startTime).TotalSeconds < analysisParameters.DataCollectionTimeout && !worker.CancellationPending)
             {
@@ -491,7 +491,7 @@ namespace EPGCentre
                     if (currentOffset >= dataProvider.BufferSpaceUsed)
                     {
                         Logger.Instance.Write("Analysis resetting pid after " + packetCount + " packets (errors = " + errorPackets + " null = " + nullPackets + ")");
-                        dataProvider.ChangePidMapping(new int[] { -1 });
+                        dataProvider.ChangePidMapping(-1);
                         currentOffset = 0;
                     }
                 }
@@ -586,7 +586,7 @@ namespace EPGCentre
                 MessageBoxIcon.Information);
 
             if (inProgress != null)
-                inProgress.Close(); 
+                inProgress.Close();
         }
 
         private void processResults()
@@ -673,7 +673,7 @@ namespace EPGCentre
             analysisParameters.ScanningFrequency = frequencySelectionControl.SelectedFrequency;
             analysisParameters.SignalLockTimeout = (int)nudSignalLockTimeout.Value;
             analysisParameters.DataCollectionTimeout = (int)nudDataCollectionTimeout.Value;
-            
+
             return (analysisParameters);
         }
 
@@ -714,7 +714,7 @@ namespace EPGCentre
                     return ("0x" + pid.ToString("X").ToLowerInvariant() + " OpenTV");
                 case 0xc8:
                     return ("0xc8 NagraGuide");
-                case 0xd2:                    
+                case 0xd2:
                 case 0xd3:
                     return ("0x" + pid.ToString("X").ToLowerInvariant() + " MediaHighway1");
                 case 0x231:
@@ -731,7 +731,7 @@ namespace EPGCentre
                 case 0xbbb:
                 case 0xf01:
                 case 0xf02:
-                    return ("0x" + pid.ToString("X").ToLowerInvariant() + " FreeSat");                
+                    return ("0x" + pid.ToString("X").ToLowerInvariant() + " FreeSat");
                 case 0x1ffb:
                     return ("0x1ffb ATSC PSIP");
                 case 0x1ffc:
@@ -834,7 +834,7 @@ namespace EPGCentre
                 case 0x90:
                 case 0x91:
                 case 0x92:
-                    return ("0x" + table.ToString("X").ToLowerInvariant() + " MediaHighway1");                
+                    return ("0x" + table.ToString("X").ToLowerInvariant() + " MediaHighway1");
                 case 0xe6:
                 case 0x96:
                     return ("0x" + table.ToString("X").ToLowerInvariant() + " MediaHighway2");
@@ -845,7 +845,7 @@ namespace EPGCentre
                 case 0xa8:
                 case 0xa9:
                 case 0xaa:
-                case 0xab:                
+                case 0xab:
                     return ("0x" + table.ToString("X").ToLowerInvariant() + " OpenTV");
                 case 0xb0:
                     return ("0xb0 NagraGuide");
@@ -876,7 +876,7 @@ namespace EPGCentre
                 case 0xcc:
                     return ("0xcc ATSC PSIP ETT");
                 case 0xcd:
-                    return ("0xcd ATSC PSIP STT"); 
+                    return ("0xcd ATSC PSIP STT");
                 case 0xd3:
                     return ("0xd3 ATSC PSIP DCCT");
                 case 0xd4:
@@ -886,7 +886,7 @@ namespace EPGCentre
                 case 0xd7:
                     return ("0xd7 SCTE AETT");
                 case 0xd8:
-                    return ("0xd8 SCTE CEAM"); 
+                    return ("0xd8 SCTE CEAM");
                 default:
                     return ("0x" + table.ToString("X").ToLowerInvariant() + " Unknown");
             }
@@ -934,9 +934,9 @@ namespace EPGCentre
         {
             internal TuningFrequency ScanningFrequency { get; set; }
             internal int SignalLockTimeout { get; set; }
-            internal int DataCollectionTimeout { get; set; }                   
+            internal int DataCollectionTimeout { get; set; }
 
             internal AnalysisParameters() { }
-        }       
+        }
     }
 }

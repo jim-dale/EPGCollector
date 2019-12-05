@@ -202,8 +202,8 @@ namespace DVBServices
                                                 region = new Region(string.Empty, channel.Region);
                                                 bouquet.AddRegion(region);
                                             }
-                                            
-                                            region.AddChannel(channel); 
+
+                                            region.AddChannel(channel);
                                         }
                                     }
                                 }
@@ -229,11 +229,11 @@ namespace DVBServices
                 Logger.Instance.Write("No MHEG5 PID's on frequency " + dataProvider.Frequency);
                 return;
             }
-            
+
             Logger.Instance.Write("Collecting MHEG5 data from PID 0x" + pid.ToString("X").ToLowerInvariant(), false, true);
 
-            dataProvider.ChangePidMapping(new int[] { pid });
-            
+            dataProvider.ChangePidMapping(pid);
+
             dsmccReader = new TSStreamReader(500, dataProvider.BufferAddress);
             dsmccReader.Run();
 
@@ -275,7 +275,7 @@ namespace DVBServices
             Logger.Instance.Write("", true, false);
             Logger.Instance.Write("Stopping reader for frequency " + dataProvider.Frequency + " PID 0x" + pid.ToString("X").ToLowerInvariant());
             dsmccReader.Stop();
-            
+
             int totalBlocks = 0;
             foreach (DSMCCModule module in modules)
             {
@@ -283,10 +283,10 @@ namespace DVBServices
                 totalBlocks += module.Blocks.Count;
             }
 
-            Logger.Instance.Write("Data blocks: " + totalBlocks + 
-                " buffer space used: " + dataProvider.BufferSpaceUsed + 
-                " discontinuities: " + dsmccReader.Discontinuities); 
-        }        
+            Logger.Instance.Write("Data blocks: " + totalBlocks +
+                " buffer space used: " + dataProvider.BufferSpaceUsed +
+                " discontinuities: " + dsmccReader.Discontinuities);
+        }
 
         private bool checkAllDataLoaded()
         {
@@ -302,7 +302,7 @@ namespace DVBServices
                     if (diiMessages != null)
                         diiCount = diiMessages.Count;
 
-                    Logger.Instance.Write("DSMCC: DSI count: " + dsiCount + " DII count: " + diiCount);                    
+                    Logger.Instance.Write("DSMCC: DSI count: " + dsiCount + " DII count: " + diiCount);
                 }
 
                 return (false);
@@ -457,7 +457,7 @@ namespace DVBServices
                             newMessage.LogMessage();
                             addModules(newMessage);
                             return (true);
-                            
+
                         }
                     }
                     else
@@ -572,7 +572,7 @@ namespace DVBServices
             {
                 bool process = checkChannelBouquet(tvStation);
                 if (!process)
-                    tvStation.ExcludedByChannel = true;                    
+                    tvStation.ExcludedByChannel = true;
             }
 
             if (RunParameters.Instance.CurrentFrequency.AdvancedRunParamters.CountryCode == null)
@@ -621,8 +621,8 @@ namespace DVBServices
                 return;
 
             if (TraceEntry.IsDefined(TraceName.DsmccDirLayout))
-                logDirectoryStructure(serviceGateway.Bindings);            
-                
+                logDirectoryStructure(serviceGateway.Bindings);
+
             BIOPDirectoryMessage epgDirectory = findObject(serviceGateway.Bindings, "epg", "dir") as BIOPDirectoryMessage;
             if (epgDirectory == null)
             {
@@ -785,10 +785,10 @@ namespace DVBServices
                 {
                     Logger.Instance.Write("Day Info file cannot be processed - data assumed to be current");
                     dayEntries = createDayEntries();
-                }                    
+                }
             }
 
-            Logger.Instance.Write("Day file date range is " + dayEntries[0].DateString + 
+            Logger.Instance.Write("Day file date range is " + dayEntries[0].DateString +
                 " to " + dayEntries[dayEntries.Count - 1].DateString);
 
             BIOPFileMessage serviceInfo = findObject(epgDirectory.Bindings, "serviceinfo.txt", "fil") as BIOPFileMessage;
@@ -854,7 +854,7 @@ namespace DVBServices
             if (epgDirectory == null)
                 return;
 
-            for (int index = 1; index < dayEntries.Count; index++ )
+            for (int index = 1; index < dayEntries.Count; index++)
             {
                 processDay(epgDirectory, dayEntries[index], serviceEntry);
                 /*BIOPDirectoryMessage dayDirectory = findObject(epgDirectory.Bindings, day.ToString(), "dir") as BIOPDirectoryMessage;
@@ -932,7 +932,7 @@ namespace DVBServices
             if (contentFields[0].Length != 0 || contentFields[1].Length != 0)
             {
                 Logger.Instance.Write("Service Info data is in the wrong format (1) - cannot be processed");
-                return(null);
+                return (null);
             }
 
             int count = 0;
@@ -953,7 +953,7 @@ namespace DVBServices
             }
 
             int entryIndex = count + 3;
-            
+
             Collection<ServiceEntry> serviceEntries = new Collection<ServiceEntry>();
 
             while (entryIndex < contentFields.Count)
@@ -1005,7 +1005,7 @@ namespace DVBServices
             if (epgFile == null)
                 return;
 
-            processEPGFile(dayEntry.OriginalDate, serviceEntry.ServiceID.ToString(), epgFile);                                
+            processEPGFile(dayEntry.OriginalDate, serviceEntry.ServiceID.ToString(), epgFile);
         }
 
         private void logModules()
@@ -1024,7 +1024,7 @@ namespace DVBServices
 
                         BIOPDirectoryMessage directoryMessage = objectEntry.MessageDetail as BIOPDirectoryMessage;
                         if (directoryMessage != null)
-                            logDirectoryStructure(directoryMessage.Bindings);                        
+                            logDirectoryStructure(directoryMessage.Bindings);
                     }
                 }
             }
@@ -1073,7 +1073,7 @@ namespace DVBServices
                         if (file != null)
                             Logger.Instance.Dump("File Contents", file.ContentData, file.ContentLength > 64 ? 64 : file.ContentLength);
                         else
-                            Logger.Instance.Write(prefix + "Failed to find file");                        
+                            Logger.Instance.Write(prefix + "Failed to find file");
                     }
                 }
             }
@@ -1386,7 +1386,7 @@ namespace DVBServices
                                     if (customCategory == null)
                                         customCategory = CustomProgramCategory.FindCategoryFromInput(epgEntry.ShortDescription);
                                     if (customCategory != null)
-                                        epgEntry.EventCategory = new EventCategorySpec(customCategory);                                                                   
+                                        epgEntry.EventCategory = new EventCategorySpec(customCategory);
 
                                     bool include = ControllerBase.CheckEPGDays(epgEntry.StartTime);
                                     if (include)
@@ -1590,7 +1590,7 @@ namespace DVBServices
                             byte[] editedDescription = replaceByte(dataFields[shortDescriptionFieldNumber], 0x0d, 0x20);
                             string eventDescription = Utils.GetString(editedDescription, "utf-8");
                             processAUSShortDescription(epgEntry, EditSpec.ProcessDescription(Utils.Compact(eventDescription)));
-                                
+
                             if (Int32.Parse(Utils.GetAsciiString(dataFields[highDefinitionFieldNumber])) == 1)
                             {
                                 epgEntry.AspectRatio = "16:9";
@@ -1615,7 +1615,7 @@ namespace DVBServices
                             if (customCategory == null)
                                 customCategory = CustomProgramCategory.FindCategoryFromInput(epgEntry.ShortDescription);
                             if (customCategory != null)
-                                epgEntry.EventCategory = new EventCategorySpec(customCategory);   
+                                epgEntry.EventCategory = new EventCategorySpec(customCategory);
 
                             bool include = ControllerBase.CheckEPGDays(epgEntry.StartTime);
                             if (include)
@@ -1704,7 +1704,7 @@ namespace DVBServices
             {
                 epgEntry.ShortDescription = descriptionParts[0];
 
-                for (int index = 1; index < descriptionParts.Length; index++)            
+                for (int index = 1; index < descriptionParts.Length; index++)
                 {
                     if (!descriptionParts[index].Trim().EndsWith(")"))
                         epgEntry.ShortDescription = epgEntry.ShortDescription + " (" + descriptionParts[index];
@@ -1727,7 +1727,7 @@ namespace DVBServices
                 return;
             }
 
-            for (int index = 1; index < descriptionParts.Length; index++)            
+            for (int index = 1; index < descriptionParts.Length; index++)
             {
                 if (descriptionParts[index].Trim() != "CC)" && descriptionParts[index].Trim().EndsWith(")"))
                 {
@@ -1755,7 +1755,7 @@ namespace DVBServices
                                 string checkString = epgEntry.EventName + " - ";
 
                                 if (epgEntry.ShortDescription.StartsWith(checkString))
-                                    epgEntry.ShortDescription = epgEntry.ShortDescription.Substring(checkString.Length).Trim();                            
+                                    epgEntry.ShortDescription = epgEntry.ShortDescription.Substring(checkString.Length).Trim();
                             }
                         }
                     }
@@ -1932,13 +1932,13 @@ namespace DVBServices
             return (true);
         }
 
-        private void logChannelInfo() 
+        private void logChannelInfo()
         {
             if (!DebugEntry.IsDefined(DebugName.LogChannels))
                 return;
             if (!RunParameters.Instance.ChannelDataNeeded)
                 return;
-        
+
             Logger.Instance.WriteSeparator("Bouquet Usage");
 
             if (Bouquet.Bouquets != null && Bouquet.Bouquets.Count != 0)
@@ -2100,12 +2100,12 @@ namespace DVBServices
                             BIOPFileMessage file = findObject(moduleID, objectKey) as BIOPFileMessage;
                             if (file != null)
                                 eitFiles.Add(Tuple.Create(binding.Names[0].Identity, file.ContentData));
-                        }                    
+                        }
                     }
                 }
             }
 
-            return eitFiles;            
+            return eitFiles;
         }
 
         private class ServiceEntry
@@ -2141,7 +2141,7 @@ namespace DVBServices
                 catch (FormatException) { return; }
                 catch (OverflowException) { return; }
 
-                this.referenceNumber = referenceNumber.Trim();                
+                this.referenceNumber = referenceNumber.Trim();
                 this.baseCRID = baseCRID.Trim();
                 this.name = name.Trim();
             }

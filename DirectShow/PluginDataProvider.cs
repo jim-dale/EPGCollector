@@ -212,21 +212,12 @@ namespace DirectShow
         /// <summary>
         /// Change the PID mappings.
         /// </summary>
-        /// <param name="newPid">The new PID to be set.</param>
-        public void ChangePidMapping(int newPid)
-        {
-            ChangePidMapping(new int[] { newPid });
-        }
-
-        /// <summary>
-        /// Change the PID mappings.
-        /// </summary>
         /// <param name="pids">A list of the new PID's to be set.</param>
-        public void ChangePidMapping(int[] pids)
+        public void ChangePidMapping(params int[] pids)
         {
             Logger.Instance.Write("Setting " + pids.Length + " pids");
 
-            StringBuilder pidString = new StringBuilder();
+            var pidString = new StringBuilder();
             foreach (int pid in pids)
             {
                 if (pidString.Length != 0)

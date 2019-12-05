@@ -662,7 +662,7 @@ namespace DVBServices
             else
                 Logger.Instance.Write("Collecting time zone data from PID(s) 0x14");
 
-            dataProvider.ChangePidMapping(new int[] { 0x14 });
+            dataProvider.ChangePidMapping(0x14);
 
             timeOffsetReader = new TSStreamReader(0x73, 50000, dataProvider.BufferAddress);
             timeOffsetReader.Run();

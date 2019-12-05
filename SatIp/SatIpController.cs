@@ -400,17 +400,8 @@ namespace SatIp
         /// <summary>
         /// Change the PID mapping.
         /// </summary>
-        /// <param name="pid">The pid to be mapped.</param>
-        public void ChangePidMapping(int pid)
-        {
-            ChangePidMapping(new int[] { pid });
-        }
-
-        /// <summary>
-        /// Change the PID mapping.
-        /// </summary>
         /// <param name="pids">The list of PID's to be mapped.</param>
-        public void ChangePidMapping(int[] pids)
+        public void ChangePidMapping(params int[] pids)
         {
             SatIpDomainObjects.SatIpLogger.Instance.Write("Changing pid mapping");
 

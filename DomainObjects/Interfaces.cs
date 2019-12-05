@@ -76,13 +76,8 @@ namespace DomainObjects
         /// <summary>
         /// Change the PID mapping.
         /// </summary>
-        /// <param name="pid">The PID to be mapped.</param>
-        void ChangePidMapping(int pid);
-        /// <summary>
-        /// Change the PID mapping.
-        /// </summary>
         /// <param name="pids">A list of PID's to be mapped.</param>
-        void ChangePidMapping(int[] pids);
+        void ChangePidMapping(params int[] pids);
 
         /// <summary>
         /// Get the number of sync byte searches

@@ -94,7 +94,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting NagraGuide data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0xc8 });            
+            dataProvider.ChangePidMapping(0xc8);            
 
             guideReader = new TSStreamReader(0xb0, 50000, dataProvider.BufferAddress);
             guideReader.Run();

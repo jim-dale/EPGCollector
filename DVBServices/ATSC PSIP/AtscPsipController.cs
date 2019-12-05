@@ -133,7 +133,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting Master Guide data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0x1ffb });
+            dataProvider.ChangePidMapping(0x1ffb);
             guideReader = new TSStreamReader(0xc7, 2000, dataProvider.BufferAddress);
 
             guideReader.Run();
@@ -182,7 +182,7 @@ namespace DVBServices
             Logger.Instance.Write("Collecting Virtual Channel data", false, true);
             VirtualChannelTable.Clear();
 
-            dataProvider.ChangePidMapping(new int[] { 0x1ffb });
+            dataProvider.ChangePidMapping(0x1ffb);
 
             Collection<byte> tables = new Collection<byte>();
             tables.Add(0xc8);

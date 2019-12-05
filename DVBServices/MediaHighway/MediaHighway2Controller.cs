@@ -141,7 +141,7 @@ namespace DVBServices
             Logger.Instance.Write("Collecting channel data", false, true);
             Channel.Channels.Clear();
 
-            dataProvider.ChangePidMapping(new int[] { 0x231 });            
+            dataProvider.ChangePidMapping(0x231);
 
             channelReader = new TSStreamReader(0xc8, 2000, dataProvider.BufferAddress);
             channelReader.Run();
@@ -190,13 +190,13 @@ namespace DVBServices
 
             Logger.Instance.Write("Channel count: " + Channel.Channels.Count +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
-                " discontinuities: " + channelReader.Discontinuities);            
+                " discontinuities: " + channelReader.Discontinuities);
         }
 
         private void getCategorySections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
             Logger.Instance.Write("Collecting category data", false, true);
-            
+
             categoryReader = new TSStreamReader(0xc8, 2000, dataProvider.BufferAddress);
             categoryReader.Run();
 
@@ -244,14 +244,14 @@ namespace DVBServices
 
             Logger.Instance.Write("Category count: " + MediaHighwayProgramCategory.Categories.Count +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
-                " discontinuities: " + categoryReader.Discontinuities);            
+                " discontinuities: " + categoryReader.Discontinuities);
         }
 
         private void getTitleSections(ISampleDataProvider dataProvider, BackgroundWorker worker)
         {
             Logger.Instance.Write("Collecting title data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0x234 });            
+            dataProvider.ChangePidMapping(0x234);
 
             titleReader = new TSStreamReader(0xe6, 2000, dataProvider.BufferAddress);
             titleReader.Run();
@@ -314,7 +314,7 @@ namespace DVBServices
         {
             Logger.Instance.Write("Collecting summary data", false, true);
 
-            dataProvider.ChangePidMapping(new int[] { 0x236 });
+            dataProvider.ChangePidMapping(0x236);
 
             summaryReader = new TSStreamReader(0x96, 2000, dataProvider.BufferAddress);
             summaryReader.Run();
@@ -366,7 +366,7 @@ namespace DVBServices
 
             Logger.Instance.Write("Summary count: " + MediaHighwaySummary.Summaries.Count +
                 " buffer space used: " + dataProvider.BufferSpaceUsed +
-                " discontinuities: " + summaryReader.Discontinuities);            
+                " discontinuities: " + summaryReader.Discontinuities);
         }
 
         private void processChannelSections(Collection<Mpeg2Section> sections)
@@ -496,15 +496,15 @@ namespace DVBServices
                     channel.ProcessChannelForEPG(station, titleLogger, descriptionLogger, CollectionType.MediaHighway2);
             }
 
-            MediaHighwayProgramCategory.LogCategories();            
-            Channel.LogChannelsInChannelIDOrder();            
+            MediaHighwayProgramCategory.LogCategories();
+            Channel.LogChannelsInChannelIDOrder();
         }
 
         private void creatStationsFromChannels()
         {
             foreach (MediaHighwayChannel channel in MediaHighwayChannel.Channels)
             {
-                TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection, 
+                TVStation station = TVStation.FindStation(RunParameters.Instance.StationCollection,
                     channel.OriginalNetworkID, channel.TransportStreamID, channel.ServiceID);
                 if (station == null)
                 {
