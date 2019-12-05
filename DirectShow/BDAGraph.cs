@@ -2179,7 +2179,7 @@ namespace DirectShow
             hr = topology.GetNodeTypes(out int nodeCount, nodeTypes.Length, nodeTypes);
             DsError.ThrowExceptionForHR(hr);
 
-            if (nodeCount != 0)
+            if (nodeCount == 0)
             {
                 Logger.Instance.Write("Tuner info: GetNodeTypes returned zero entries");
             }
