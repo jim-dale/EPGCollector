@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29509.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPGCollector", "EPGCollector\EPGCollector.csproj", "{3C5CB90D-FD89-4ECA-8177-E04DB8464158}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPGCentre", "EPGCollectorGUI\EPGCentre.csproj", "{AF2657C1-7B32-4F61-B68F-1CA9FAC77B2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPGCentre", "EPGCentre\EPGCentre.csproj", "{AF2657C1-7B32-4F61-B68F-1CA9FAC77B2C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3C5CB90D-FD89-4ECA-8177-E04DB8464158} = {3C5CB90D-FD89-4ECA-8177-E04DB8464158}
 	EndProjectSection
@@ -156,8 +156,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E3CE2A8D-BF24-4235-8231-1E2C9ECF26AB}
-	EndGlobalSection
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = EPGCollector.vsmdi
 	EndGlobalSection
 EndGlobal

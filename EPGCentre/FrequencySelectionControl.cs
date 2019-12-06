@@ -88,7 +88,7 @@ namespace EPGCentre
         private static ISDBTerrestrialFrequency currentISDBTerrestrialFrequency;
         private static FileFrequency currentFileFrequency;
         private static StreamFrequency currentStreamFrequency;
-        
+
         internal FrequencySelectionControl()
         {
             InitializeComponent();
@@ -109,7 +109,7 @@ namespace EPGCentre
 
             tbcDeliverySystem.TabPages.RemoveByKey("tbpISDBSatellite");
             tbcDeliverySystem.TabPages.RemoveByKey("tbpISDBTerrestrial");
-        
+
             initializeSatelliteTab();
             initializeTerrestrialTab();
             initializeCableTab();
@@ -264,9 +264,15 @@ namespace EPGCentre
             }
             else
             {
-                cboCountry.SelectedIndex = 0;
-                udDvbtSatIpFrontend.SelectedIndex = 0;
-            }                
+                if (cboCountry.Items.Count > 0)
+                {
+                    cboCountry.SelectedIndex = 0;
+                }
+                if (udDvbtSatIpFrontend.Items.Count > 0)
+                {
+                    udDvbtSatIpFrontend.SelectedIndex = 0;
+                }
+            }
 
             fillTunersList(TunerNodeType.Terrestrial, clbTerrestrialTuners, currentTerrestrialFrequency);
         }
@@ -305,8 +311,14 @@ namespace EPGCentre
             }
             else
             {
-                cboCable.SelectedIndex = 0;
-                udDvbcSatIpFrontend.SelectedIndex = 0;
+                if (cboCable.Items.Count > 0)
+                {
+                    cboCable.SelectedIndex = 0;
+                }
+                if (udDvbcSatIpFrontend.Items.Count > 0)
+                {
+                    udDvbcSatIpFrontend.SelectedIndex = 0;
+                }
             }
 
             fillTunersList(TunerNodeType.Cable, clbCableTuners, currentCableFrequency);
@@ -340,7 +352,12 @@ namespace EPGCentre
                 cboAtscScanningFrequency.Text = currentAtscFrequency.ToString();
             }
             else
-                cboAtscProvider.SelectedIndex = 0;
+            {
+                if (cboAtscProvider.Items.Count > 0)
+                {
+                    cboAtscProvider.SelectedIndex = 0;
+                }
+            }
 
             fillTunersList(TunerNodeType.ATSC, clbAtscTuners, currentAtscFrequency);
         }
@@ -373,7 +390,12 @@ namespace EPGCentre
                 cboClearQamScanningFrequency.Text = currentClearQamFrequency.ToString();
             }
             else
-                cboClearQamProvider.SelectedIndex = 0;
+            {
+                if (cboClearQamProvider.Items.Count > 0)
+                {
+                    cboClearQamProvider.SelectedIndex = 0;
+                }
+            }
 
             fillTunersList(TunerNodeType.Cable, clbClearQamTuners, currentClearQamFrequency);
         }
@@ -407,12 +429,12 @@ namespace EPGCentre
             }
             else
                 cboISDBSatellite.SelectedIndex = 0;
-            
+
             if (currentISDBSatelliteFrequency != null && currentISDBSatelliteFrequency.SatelliteDish != null)
             {
                 txtISDBLNBLow.Text = currentSatelliteFrequency.SatelliteDish.LNBLowBandFrequency.ToString();
                 txtISDBLNBHigh.Text = currentSatelliteFrequency.SatelliteDish.LNBHighBandFrequency.ToString();
-                txtISDBLNBSwitch.Text = currentSatelliteFrequency.SatelliteDish.LNBSwitchFrequency.ToString();                
+                txtISDBLNBSwitch.Text = currentSatelliteFrequency.SatelliteDish.LNBSwitchFrequency.ToString();
             }
             else
             {
@@ -420,10 +442,10 @@ namespace EPGCentre
 
                 txtISDBLNBLow.Text = satelliteDish.LNBLowBandFrequency.ToString();
                 txtISDBLNBHigh.Text = satelliteDish.LNBHighBandFrequency.ToString();
-                txtISDBLNBSwitch.Text = satelliteDish.LNBSwitchFrequency.ToString();                
+                txtISDBLNBSwitch.Text = satelliteDish.LNBSwitchFrequency.ToString();
             }
 
-            fillTunersList(TunerNodeType.ISDBS, clbISDBSatelliteTuners, currentISDBSatelliteFrequency);         
+            fillTunersList(TunerNodeType.ISDBS, clbISDBSatelliteTuners, currentISDBSatelliteFrequency);
         }
 
         private void initializeISDBTTab()
@@ -489,7 +511,7 @@ namespace EPGCentre
                 }
 
                 cboStreamProtocol.Text = currentStreamFrequency.Protocol.ToString();
-                tbStreamPath.Text = currentStreamFrequency.Path;                
+                tbStreamPath.Text = currentStreamFrequency.Path;
             }
             else
             {
@@ -498,7 +520,7 @@ namespace EPGCentre
                 tbStreamMulticastSourceIP.Text = null;
                 nudStreamMulticastSourcePort.Value = 0;
                 cboStreamProtocol.SelectedIndex = 0;
-                tbStreamPath.Text = null;                
+                tbStreamPath.Text = null;
             }
         }
 
@@ -778,7 +800,7 @@ namespace EPGCentre
         private TuningFrequency getSatelliteFrequency()
         {
             currentSatelliteFrequency = (SatelliteFrequency)((SatelliteFrequency)cboDVBSScanningFrequency.SelectedItem).Clone();
-            
+
             currentSatelliteFrequency.SatelliteDish = new SatelliteDish();
             currentSatelliteFrequency.SatelliteDish.LNBLowBandFrequency = Int32.Parse(txtLNBLow.Text.Trim());
             currentSatelliteFrequency.SatelliteDish.LNBHighBandFrequency = Int32.Parse(txtLNBHigh.Text.Trim());
@@ -816,27 +838,27 @@ namespace EPGCentre
                 currentSatelliteFrequency.DiseqcRunParamters.DiseqcHandler = cboDiseqcHandler.Text;
             }
 
-            return (currentSatelliteFrequency);            
+            return (currentSatelliteFrequency);
         }
 
         private TuningFrequency getTerrestrialFrequency()
         {
             currentTerrestrialFrequency = (TerrestrialFrequency)((TerrestrialFrequency)cboDVBTScanningFrequency.SelectedItem).Clone();
-            
+
             if (udDvbtSatIpFrontend.SelectedIndex != 0)
                 currentTerrestrialFrequency.SatIpFrontend = udDvbtSatIpFrontend.SelectedIndex;
             else
                 currentTerrestrialFrequency.SatIpFrontend = -1;
 
             setTuner(currentTerrestrialFrequency, clbTerrestrialTuners);
-            
+
             return (currentTerrestrialFrequency);
         }
 
         private TuningFrequency getCableFrequency()
         {
             currentCableFrequency = (CableFrequency)((CableFrequency)cboCableScanningFrequency.SelectedItem).Clone();
-            
+
             if (udDvbtSatIpFrontend.SelectedIndex != 0)
                 currentCableFrequency.SatIpFrontend = udDvbcSatIpFrontend.SelectedIndex;
             else
@@ -849,7 +871,7 @@ namespace EPGCentre
 
         private TuningFrequency getAtscFrequency()
         {
-            currentAtscFrequency = (AtscFrequency)((AtscFrequency)cboAtscScanningFrequency.SelectedItem).Clone();            
+            currentAtscFrequency = (AtscFrequency)((AtscFrequency)cboAtscScanningFrequency.SelectedItem).Clone();
             setTuner(currentAtscFrequency, clbAtscTuners);
 
             return (currentAtscFrequency);
@@ -866,7 +888,7 @@ namespace EPGCentre
         private TuningFrequency getISDBSatelliteFrequency()
         {
             currentISDBSatelliteFrequency = (ISDBSatelliteFrequency)((ISDBSatelliteFrequency)cboISDBSScanningFrequency.SelectedItem).Clone();
-            
+
             currentISDBSatelliteFrequency.SatelliteDish = new SatelliteDish();
             currentISDBSatelliteFrequency.SatelliteDish.LNBLowBandFrequency = Int32.Parse(txtLNBLow.Text.Trim());
             currentISDBSatelliteFrequency.SatelliteDish.LNBHighBandFrequency = Int32.Parse(txtLNBHigh.Text.Trim());
@@ -945,37 +967,37 @@ namespace EPGCentre
 
         private void clbSatelliteTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbSatelliteTuners); 
+            changeTunerListBox(clbSatelliteTuners);
         }
 
         private void clbTerrestrialTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbTerrestrialTuners);  
+            changeTunerListBox(clbTerrestrialTuners);
         }
 
         private void clbCableTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbCableTuners);  
+            changeTunerListBox(clbCableTuners);
         }
 
         private void clbAtscTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbAtscTuners);  
+            changeTunerListBox(clbAtscTuners);
         }
 
         private void clbClearQamTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbClearQamTuners);  
+            changeTunerListBox(clbClearQamTuners);
         }
 
         private void clbISDBSatelliteTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbISDBSatelliteTuners);  
+            changeTunerListBox(clbISDBSatelliteTuners);
         }
 
         private void clbISDBTerrestrialTuners_SelectedIndexChanged(object sender, EventArgs e)
         {
-            changeTunerListBox(clbISDBTerrestrialTuners);  
+            changeTunerListBox(clbISDBTerrestrialTuners);
         }
 
         private void changeTunerListBox(CheckedListBox listBox)
